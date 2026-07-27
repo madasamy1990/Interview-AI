@@ -1,0 +1,22 @@
+{
+  "name": "crack-it",
+  "version": "1.0.0",
+  "description": "Crack it - Silent .NET Interview Assistant",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "openai": "^4.67.0",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  },
+  "author": "Crack it",
+  "license": "MIT",
+  "allowScripts": {
+    "electron@31.7.7": true
+  }
+}

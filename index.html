@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crack it</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Title Bar -->
+  <div class="title-bar" id="titleBar">
+    <div class="title-bar-left">
+      <div class="angel-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L8 8H4L7 13L5 20L12 17L19 20L17 13L20 8H16L12 2Z" fill="#8b5cf6" stroke="#a78bfa" stroke-width="0.5"/>
+          <path d="M12 2L9 7M12 2L15 7" stroke="#c4b5fd" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="app-title">Crack it</span>
+    </div>
+    <div class="title-bar-right">
+      <button class="win-btn" id="minimizeBtn" title="Minimize">—</button>
+      <button class="win-btn close-btn" id="closeBtn" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-area" id="chatArea">
+    <!-- Welcome Message -->
+    <div class="welcome-bubble" id="welcomeBubble">
+      <div class="angel-avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L8 8H4L7 13L5 20L12 17L19 20L17 13L20 8H16L12 2Z" fill="#8b5cf6"/>
+        </svg>
+      </div>
+      <div class="welcome-text">Hi! I'm Crack it. I can help you silently in all online meetings and interviews.</div>
+    </div>
+  </div>
+
+  <!-- Live Transcription Bar (shown while mic is active) -->
+  <div class="live-transcript-bar" id="liveTranscriptBar" style="display:none">
+    <div class="live-dot"></div>
+    <canvas id="audioVisualizer" width="80" height="20" style="margin-right:8px;"></canvas>
+    <span id="liveTranscriptText">Listening...</span>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span id="statusBarText">Press Mic button to start</span>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="tool-btn" id="settingsBtn" title="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="screenshotBtn" title="Capture screen question">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M3 9V7a2 2 0 0 1 2-2h2M3 15v2a2 2 0 0 0 2 2h2M21 9V7a2 2 0 0 0-2-2h-2M21 15v2a2 2 0 0 1-2 2h-2"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn mic-btn" id="micBtn" title="Click to start / stop listening">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="textBtn" title="Type question manually">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="clearBtn" title="Clear chat">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-3.85"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="exportBtn" title="Export chat">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="listenBtn" title="Listen to interviewer (System Audio)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="helpBtn" title="Keyboard shortcuts">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 16v-4M12 8h.01"/>
+      </svg>
+    </button>
+
+    <button class="tool-btn" id="glassBtn" title="Toggle Transparent Mode (Ctrl+G)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+    <div class="hide-wrap">
+      <button class="hide-btn" id="hideBtn">
+        <div class="hide-toggle" id="hideToggle"></div>
+        <span>Hide</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Text Input Panel (slides up from bottom) -->
+  <div class="text-panel" id="textPanel" style="display:none">
+    <div class="text-panel-inner">
+      <textarea id="manualInput" placeholder="Type your interview question here..." rows="2"></textarea>
+      <div class="text-panel-actions">
+        <div class="command-chips">
+          <span class="chip" onclick="appendCommand('shorter')">shorter</span>
+          <span class="chip" onclick="appendCommand('longer')">longer</span>
+          <span class="chip" onclick="appendCommand('example')">example</span>
+          <span class="chip" onclick="appendCommand('rephrase')">rephrase</span>
+          <span class="chip" onclick="appendCommand('deep dive')">deep dive</span>
+          <span class="chip" onclick="appendCommand('HR mode')">HR mode</span>
+        </div>
+        <div class="text-btns">
+          <button class="cancel-btn" id="cancelTextBtn">✕</button>
+          <button class="send-btn" id="sendBtn">Send ↵</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings-overlay" id="settingsPanel" style="display:none">
+    <div class="settings-box">
+      <div class="settings-head">
+        <span>⚙️ Settings</span>
+        <button class="close-settings" id="closeSettings">✕</button>
+      </div>
+      <div class="settings-body">
+        <label>🤖 AI Provider</label>
+        <select id="providerSelect">
+          <option value="groq">⚡ Groq — FREE + Instant 🚀</option>
+          <option value="gemini">✨ Google Gemini — FREE</option>
+          <option value="openai">💳 OpenAI ChatGPT — Paid</option>
+          <option value="ollama">🦙 Local Ollama — Offline</option>
+        </select>
+
+        <div id="groqSection">
+          <label>Groq API Key</label>
+          <input type="password" id="groqKeyInput" placeholder="gsk_..." />
+          <div class="hint">Possibility: <a href="#" id="openGroqLink">console.groq.com/keys</a></div>
+          <label>Model</label>
+          <select id="groqModelSelect">
+            <option value="llama-3.3-70b-versatile" selected>Llama 3.3 70B — Best 🧠</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B — Fastest ⚡</option>
+            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B — Thinking 🧠</option>
+            <option value="mixtral-8x7b-32768">Mixtral 8x7B — Smart 💡</option>
+          </select>
+        </div>
+
+        <div id="geminiSection" style="display:none">
+          <label>Gemini API Key</label>
+          <input type="password" id="geminiKeyInput" placeholder="AIza..." />
+          <div class="hint">🆓 Free: <a href="#" id="openGeminiLink">aistudio.google.com/apikey</a></div>
+          <label>Model</label>
+          <select id="geminiModelSelect">
+            <option value="gemini-2.0-flash" selected>Gemini 2.0 Flash 🚀</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro 🧠</option>
+          </select>
+        </div>
+
+        <div id="openaiSection" style="display:none">
+          <label>OpenAI API Key</label>
+          <input type="password" id="apiKeyInput" placeholder="sk-..." />
+          <div class="hint">Get: <a href="#" id="openApiLink">platform.openai.com/api-keys</a></div>
+          <label>Model</label>
+          <select id="modelSelect">
+            <option value="gpt-4o-mini">GPT-4o Mini ⚡</option>
+            <option value="gpt-4o" selected>GPT-4o 🧠</option>
+          </select>
+        </div>
+
+        <div id="ollamaSection" style="display:none">
+          <label>Ollama API Endpoint</label>
+          <input type="text" id="ollamaEndpointInput" placeholder="http://localhost:11434" />
+          <label>Model</label>
+          <select id="ollamaModelSelect">
+            <option value="deepseek-r1" selected>DeepSeek-R1 (Thinking)</option>
+            <option value="deepseek-r1:8b">DeepSeek-R1 8B</option>
+            <option value="llama3">Llama 3</option>
+            <option value="mistral">Mistral</option>
+          </select>
+          <div class="hint">Ensure Ollama is running style server API.</div>
+        </div>
+
+        <label>Opacity</label>
+        <div class="range-row">
+          <input type="range" id="opacitySlider" min="30" max="100" value="95" />
+          <span id="opacityVal">95%</span>
+        </div>
+
+        <label>🎨 Theme</label>
+        <select id="themeSelect">
+          <option value="dark">🌙 Dark (Default)</option>
+          <option value="amoled">⬛ AMOLED Black</option>
+          <option value="light">☀️ Light</option>
+          <option value="ocean">🌊 Ocean Blue</option>
+          <option value="purple">🔮 Midnight Purple</option>
+          <option value="forest">🌿 Forest Green</option>
+        </select>
+
+        <label>Font Size</label>
+        <select id="fontSizeSelect">
+          <option value="13px">Small</option>
+          <option value="15px" selected>Medium</option>
+          <option value="17px">Large</option>
+        </select>
+
+        <label>🔊 Text-to-Speech</label>
+        <div class="tts-settings-row">
+          <div class="tts-toggle-wrap">
+            <label class="tts-switch">
+              <input type="checkbox" id="ttsToggle" checked>
+              <span class="tts-slider"></span>
+            </label>
+            <span class="tts-label">Auto-Read Answers</span>
+          </div>
+          <div class="tts-speed-wrap">
+            <label style="font-size:11px;color:var(--text2);margin-bottom:2px;">Speed</label>
+            <div class="range-row">
+              <input type="range" id="ttsSpeedSlider" min="0.5" max="2.0" step="0.1" value="1.0" />
+              <span id="ttsSpeedVal">1.0x</span>
+            </div>
+          </div>
+        </div>
+
+        <label>🖥️ Screen Capture Selection</label>
+        <select id="screenSelect">
+          <option value="">Default Display</option>
+        </select>
+
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 12px;">
+          <label class="tts-switch" style="margin-top:0;">
+            <input type="checkbox" id="snippetModeToggle">
+            <span class="tts-slider"></span>
+          </label>
+          <span style="font-size:12px; color:var(--text2)">Enable Snippet Crop Mode</span>
+        </div>
+
+        <label>🎙️ Audio Input (Microphone)</label>
+        <select id="micSelect">
+          <option value="">Default Microphone</option>
+        </select>
+
+        <label>🔊 Audio Output (Speaker)</label>
+        <select id="speakerSelect">
+          <option value="">Default Speaker</option>
+        </select>
+
+        <label>🗣️ Speech Vocabulary / Whisper Prompt</label>
+        <input type="text" id="speechVocabularyInput" placeholder="LINQ, MediatR, CQRS, DbContext" style="width: 100%; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; margin-bottom: 2px;" />
+        <div class="hint" style="margin-bottom: 10px;">Helps Whisper spell developer terminology correctly.</div>
+
+        <label>🧠 Custom System Prompt</label>
+        <div class="hint" style="margin-bottom:6px">Paste your interview persona prompt here. This controls HOW Crack it answers. Leave blank for default .NET Senior Dev.</div>
+        <textarea id="customPromptInput" rows="6" placeholder="You are my Senior .NET Full Stack Developer Interview Brain..." style="font-size:12px;line-height:1.5;min-height:100px;max-height:200px;overflow-y:auto;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="save-btn" id="resetPromptBtn" style="flex:0 0 auto;padding:6px 12px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);">↩ Reset Default</button>
+        </div>
+
+        <button class="save-btn" id="saveSettingsBtn">💾 Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Help Panel -->
+  <div class="settings-overlay" id="helpPanel" style="display:none">
+    <div class="settings-box shortcuts-box">
+      <div class="settings-head">
+        <span>⌨️ Keyboard Shortcuts</span>
+        <button class="close-settings" id="closeHelp">✕</button>
+      </div>
+      <div class="shortcuts-body">
+        <div class="shortcut-group">
+          <h3>🎤 Recording</h3>
+          <div class="shortcut-row">
+            <kbd>SPACE</kbd>
+            <span>Hold to record & auto-submit</span>
+          </div>
+        </div>
+
+        <div class="shortcut-group">
+          <h3>💬 Text Input</h3>
+          <div class="shortcut-row">
+            <kbd>T</kbd>
+            <span>Open text input panel</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>ENTER</kbd>
+            <span>Submit (in text panel)</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>SHIFT+ENTER</kbd>
+            <span>New line (in text panel)</span>
+          </div>
+        </div>
+
+        <div class="shortcut-group">
+          <h3>🎨 Interface</h3>
+          <div class="shortcut-row">
+            <kbd>CTRL+L</kbd>
+            <span>Clear chat history</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>CTRL+C</kbd>
+            <span>Copy last answer</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>ESC</kbd>
+            <span>Close all panels</span>
+          </div>
+        </div>
+
+        <div class="shortcut-group">
+          <h3>🕵️ Stealth</h3>
+          <div class="shortcut-row">
+            <kbd>CTRL+SHIFT+A</kbd>
+            <span>Toggle stealth mode (click-through)</span>
+          </div>
+        </div>
+
+        <div class="shortcut-hint">💡 Pro tip: Use keyboard shortcuts while in an interview for silent control!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Snippet Mode Overlay -->
+  <div class="settings-overlay" id="cropModal" style="display:none; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); z-index: 10000;">
+    <div class="settings-box" style="width: 90%; height: 90%; max-width: 800px; max-height: 600px; border-radius: 12px; background: var(--bg2); border: 1px solid var(--border); display: flex; flex-direction: column;">
+      <div class="settings-head">
+        <span>📐 Select Area to OCR</span>
+        <button class="close-settings" id="cancelCropBtn">✕</button>
+      </div>
+      <div class="crop-container" style="flex: 1; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; background: #000; padding: 10px;">
+        <canvas id="cropCanvas" style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: crosshair;"></canvas>
+      </div>
+      <div class="settings-body" style="flex: 0 0 auto; flex-direction: row; justify-content: flex-end; gap: 8px; padding: 12px; border-top: 1px solid var(--border);">
+        <button class="save-btn" id="performCropOcrBtn" style="margin-top:0; padding: 8px 16px;">🔍 OCR Selection</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
