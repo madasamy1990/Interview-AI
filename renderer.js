@@ -256,6 +256,18 @@ function init() {
       }
     });
   }
+
+  // Listen for remote scroll commands (Ctrl+Shift+↑/↓ from any app)
+  if (window.electronAPI?.onRemoteScroll) {
+    window.electronAPI.onRemoteScroll((direction) => {
+      const scrollAmount = 200;
+      if (direction === 'down') {
+        chatArea.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+      } else if (direction === 'up') {
+        chatArea.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+      }
+    });
+  }
 }
 
 // ─── Status Bar ───
@@ -821,11 +833,11 @@ async function transcribeAudio() {
 
     const formData = new FormData();
     formData.append('file', audioBlob, `recording.${ext}`);
-    formData.append('model', 'whisper-large-v3');
+    formData.append('model', groqKey ? 'whisper-large-v3' : 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
 
-    // Use Groq Whisper endpoint
+    // Use Groq Whisper endpoint (free + fast) or OpenAI Whisper
     const apiUrl = groqKey
       ? 'https://api.groq.com/openai/v1/audio/transcriptions'
       : 'https://api.openai.com/v1/audio/transcriptions';
@@ -1608,7 +1620,7 @@ async function processSystemAudio() {
 
     const formData = new FormData();
     formData.append('file', audioBlob, `system_audio.${ext}`);
-    formData.append('model', 'whisper-large-v3');
+    formData.append('model', groqKey ? 'whisper-large-v3' : 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
 

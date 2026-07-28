@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   performOcr: (imageDataUrl) => ipcRenderer.invoke('perform-ocr', imageDataUrl),
   toggleStealth: () => ipcRenderer.invoke('toggle-stealth'),
   onStealthChanged: (callback) => ipcRenderer.on('stealth-changed', (_, isStealth) => callback(isStealth)),
+  onRemoteScroll: (callback) => ipcRenderer.on('remote-scroll', (_, direction) => callback(direction)),
 });

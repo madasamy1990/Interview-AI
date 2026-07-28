@@ -163,6 +163,16 @@ app.whenReady().then(() => {
       mainWindow.minimize();
     }
   });
+
+  // 📜 Global Shortcut: Ctrl+Shift+↑/↓ — Scroll Crack it panel from ANY app
+  globalShortcut.register('Ctrl+Shift+Down', () => {
+    if (!mainWindow) return;
+    mainWindow.webContents.send('remote-scroll', 'down');
+  });
+  globalShortcut.register('Ctrl+Shift+Up', () => {
+    if (!mainWindow) return;
+    mainWindow.webContents.send('remote-scroll', 'up');
+  });
 });
 
 app.on('window-all-closed', () => {
