@@ -23,41 +23,56 @@ MY TECH STACK:
 • Auth      → JWT, OAuth2, Azure AD B2C
 • Testing   → xUnit, NUnit, Moq
 
-ANSWER STRUCTURE:
-[TECHNICAL CONCEPT] → What it is → Why I use it → Real project example → Result. (45-60 sec)
-[PROJECT/EXPERIENCE] → Context → Challenge → Solution → Impact. (60-90 sec)
-[SQL/PERFORMANCE] → Problem → Root cause → Fix → Gain. (45-60 sec)
-[ARCHITECTURE] → Business need → Pattern chosen → Implementation → Trade-offs. (60-90 sec)
-[BEHAVIORAL/HR] → Situation → Action → Result. STAR method. (30-45 sec)
-[RAPID FIRE] → 1-2 sentences max. (15-20 sec)
+ANSWER STRUCTURE (use this EXACT format for every technical answer):
+
+🔵 Definition / Main Concept
+[What it is — 2-3 sentences, clear and direct]
+
+⭐ Why We Use It / Key Purpose
+[Why it matters — list the key use cases]
+
+🟢 Real Project Usage
+[Your real project example with specific class/service names]
+
+🟠 Advantages / Benefits
+[List 4-5 key benefits as bullet points]
+
+🔴 Interview Point / Must Remember
+[Critical points the interviewer expects you to know]
+
+✅ Best Practice
+[Code example or best practice tip]
+
+Simple Interview Answer (30 Seconds)
+[A compact 3-4 sentence version of the full answer above]
 
 SMART RULES:
 ✅ Lead with the point — no warm-up sentences
 ✅ Use numbers: "reduced latency by 40%", "handled 10k concurrent users"
 ✅ Mention trade-offs to sound senior
 ✅ Connect tech decisions to business value
-✅ End with a strong result line
+✅ Use emoji headers EXACTLY as shown above
 
 COMMANDS: "shorter" | "longer" | "example" | "rephrase" | "rapid fire" | "deep dive" | "HR mode"
 
-FORMAT: Clean paragraphs. Write as if speaking naturally to the interviewer. No markdown headers.`;
+FORMAT: Use the emoji-header structure above. Use bullet points (•) for lists. Use \`\`\`csharp for code blocks. Write in first person as if speaking to the interviewer.`;
 
 // Load custom prompt from localStorage, or use default
 let SYSTEM_PROMPT = localStorage.getItem('angel_custom_prompt') || DEFAULT_PROMPT;
 
 // ─── State ───
-let provider    = localStorage.getItem('angel_provider')     || 'groq';
-let groqKey     = localStorage.getItem('angel_groq_key')     || '';
-let groqModel   = localStorage.getItem('angel_groq_model')   || 'llama-3.3-70b-versatile';
-let geminiKey   = localStorage.getItem('angel_gemini_key')   || '';
+let provider = localStorage.getItem('angel_provider') || 'groq';
+let groqKey = localStorage.getItem('angel_groq_key') || '';
+let groqModel = localStorage.getItem('angel_groq_model') || 'llama-3.3-70b-versatile';
+let geminiKey = localStorage.getItem('angel_gemini_key') || '';
 let geminiModel = localStorage.getItem('angel_gemini_model') || 'gemini-2.0-flash';
-let apiKey      = localStorage.getItem('angel_api_key')      || '';
-let openaiModel = localStorage.getItem('angel_model')        || 'gpt-4o';
-let currentTheme = localStorage.getItem('angel_theme')       || 'dark';
-let isListening  = false;
-let isHidden     = false;
+let apiKey = localStorage.getItem('angel_api_key') || '';
+let openaiModel = localStorage.getItem('angel_model') || 'gpt-4o';
+let currentTheme = localStorage.getItem('angel_theme') || 'dark';
+let isListening = false;
+let isHidden = false;
 let mediaRecorder = null;
-let audioChunks   = [];
+let audioChunks = [];
 let recordingTimer = null;
 
 // Real-time Speech Recognition state
@@ -65,17 +80,17 @@ let speechRecognition = null;
 let liveTranscript = '';       // accumulated final results
 let interimTranscript = '';    // current interim result
 let conversationHistory = [];
-let isOffline     = false;
-let retryQueue    = [];
-let retryCount    = 0;
-const MAX_RETRY   = 3;
+let isOffline = false;
+let retryQueue = [];
+let retryCount = 0;
+const MAX_RETRY = 3;
 
 // New state additions
-let ollamaEndpoint  = localStorage.getItem('angel_ollama_endpoint')  || 'http://localhost:11434';
-let ollamaModel     = localStorage.getItem('angel_ollama_model')     || 'deepseek-r1';
+let ollamaEndpoint = localStorage.getItem('angel_ollama_endpoint') || 'http://localhost:11434';
+let ollamaModel = localStorage.getItem('angel_ollama_model') || 'deepseek-r1';
 let speechVocabulary = localStorage.getItem('angel_speech_vocabulary') || '';
-let snippetMode      = localStorage.getItem('angel_snippet_mode')     === 'true';
-let selectedScreenId = localStorage.getItem('angel_screen_id')        || '';
+let snippetMode = localStorage.getItem('angel_snippet_mode') === 'true';
+let selectedScreenId = localStorage.getItem('angel_screen_id') || '';
 let visualizerAnimation = null;
 
 // Pre-warmed mic stream (keeps mic ready so first spacebar press works instantly)
@@ -95,7 +110,7 @@ let customTheme = JSON.parse(localStorage.getItem('angel_custom_theme') || 'null
 
 // TTS State
 let ttsEnabled = localStorage.getItem('angel_tts_enabled') !== 'false'; // ON by default
-let ttsSpeed   = parseFloat(localStorage.getItem('angel_tts_speed') || '1.0');
+let ttsSpeed = parseFloat(localStorage.getItem('angel_tts_speed') || '1.0');
 let currentUtterance = null;
 let isSpeaking = false;
 
@@ -114,74 +129,74 @@ const MIN_RECORDING_MS = 1500;    // minimum recording before processing
 let systemRecordStart = 0;
 
 // ─── DOM ───
-const chatArea          = document.getElementById('chatArea');
+const chatArea = document.getElementById('chatArea');
 const liveTranscriptBar = document.getElementById('liveTranscriptBar');
 const liveTranscriptTxt = document.getElementById('liveTranscriptText');
-const statusBarText     = document.getElementById('statusBarText');
-const micBtn            = document.getElementById('micBtn');
-const screenshotBtn     = document.getElementById('screenshotBtn');
-const textBtn           = document.getElementById('textBtn');
-const clearBtn          = document.getElementById('clearBtn');
-const exportBtn         = document.getElementById('exportBtn');
-const settingsBtn       = document.getElementById('settingsBtn');
-const hideBtn           = document.getElementById('hideBtn');
-const textPanel         = document.getElementById('textPanel');
-const settingsPanel     = document.getElementById('settingsPanel');
-const manualInput       = document.getElementById('manualInput');
-const sendBtn           = document.getElementById('sendBtn');
-const cancelTextBtn     = document.getElementById('cancelTextBtn');
-const minimizeBtn       = document.getElementById('minimizeBtn');
-const closeBtn          = document.getElementById('closeBtn');
-const providerSelect    = document.getElementById('providerSelect');
-const groqKeyInput      = document.getElementById('groqKeyInput');
-const groqModelSelect   = document.getElementById('groqModelSelect');
-const geminiKeyInput    = document.getElementById('geminiKeyInput');
+const statusBarText = document.getElementById('statusBarText');
+const micBtn = document.getElementById('micBtn');
+const screenshotBtn = document.getElementById('screenshotBtn');
+const textBtn = document.getElementById('textBtn');
+const clearBtn = document.getElementById('clearBtn');
+const exportBtn = document.getElementById('exportBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const hideBtn = document.getElementById('hideBtn');
+const textPanel = document.getElementById('textPanel');
+const settingsPanel = document.getElementById('settingsPanel');
+const manualInput = document.getElementById('manualInput');
+const sendBtn = document.getElementById('sendBtn');
+const cancelTextBtn = document.getElementById('cancelTextBtn');
+const minimizeBtn = document.getElementById('minimizeBtn');
+const closeBtn = document.getElementById('closeBtn');
+const providerSelect = document.getElementById('providerSelect');
+const groqKeyInput = document.getElementById('groqKeyInput');
+const groqModelSelect = document.getElementById('groqModelSelect');
+const geminiKeyInput = document.getElementById('geminiKeyInput');
 const geminiModelSelect = document.getElementById('geminiModelSelect');
-const apiKeyInput       = document.getElementById('apiKeyInput');
-const modelSelect       = document.getElementById('modelSelect');
-const opacitySlider     = document.getElementById('opacitySlider');
-const opacityVal        = document.getElementById('opacityVal');
-const themeSelect       = document.getElementById('themeSelect');
-const fontSizeSelect    = document.getElementById('fontSizeSelect');
-const saveSettingsBtn   = document.getElementById('saveSettingsBtn');
-const groqSection       = document.getElementById('groqSection');
-const geminiSection     = document.getElementById('geminiSection');
-const openaiSection     = document.getElementById('openaiSection');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const modelSelect = document.getElementById('modelSelect');
+const opacitySlider = document.getElementById('opacitySlider');
+const opacityVal = document.getElementById('opacityVal');
+const themeSelect = document.getElementById('themeSelect');
+const fontSizeSelect = document.getElementById('fontSizeSelect');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const groqSection = document.getElementById('groqSection');
+const geminiSection = document.getElementById('geminiSection');
+const openaiSection = document.getElementById('openaiSection');
 const customPromptInput = document.getElementById('customPromptInput');
-const resetPromptBtn    = document.getElementById('resetPromptBtn');
-const listenBtn         = document.getElementById('listenBtn');
-const helpBtn           = document.getElementById('helpBtn');
-const glassBtn          = document.getElementById('glassBtn');
-const helpPanel         = document.getElementById('helpPanel');
-const closeHelp         = document.getElementById('closeHelp');
+const resetPromptBtn = document.getElementById('resetPromptBtn');
+const listenBtn = document.getElementById('listenBtn');
+const helpBtn = document.getElementById('helpBtn');
+const glassBtn = document.getElementById('glassBtn');
+const helpPanel = document.getElementById('helpPanel');
+const closeHelp = document.getElementById('closeHelp');
 
-const ollamaSection       = document.getElementById('ollamaSection');
+const ollamaSection = document.getElementById('ollamaSection');
 const ollamaEndpointInput = document.getElementById('ollamaEndpointInput');
-const ollamaModelSelect   = document.getElementById('ollamaModelSelect');
-const screenSelect        = document.getElementById('screenSelect');
-const snippetModeToggle   = document.getElementById('snippetModeToggle');
-const micSelect           = document.getElementById('micSelect');
-const speakerSelect       = document.getElementById('speakerSelect');
+const ollamaModelSelect = document.getElementById('ollamaModelSelect');
+const screenSelect = document.getElementById('screenSelect');
+const snippetModeToggle = document.getElementById('snippetModeToggle');
+const micSelect = document.getElementById('micSelect');
+const speakerSelect = document.getElementById('speakerSelect');
 const speechVocabularyInput = document.getElementById('speechVocabularyInput');
-const audioVisualizer     = document.getElementById('audioVisualizer');
-const visCtx              = audioVisualizer ? audioVisualizer.getContext('2d') : null;
-const cropModal           = document.getElementById('cropModal');
-const cropCanvas          = document.getElementById('cropCanvas');
-const cancelCropBtn       = document.getElementById('cancelCropBtn');
-const performCropOcrBtn   = document.getElementById('performCropOcrBtn');
+const audioVisualizer = document.getElementById('audioVisualizer');
+const visCtx = audioVisualizer ? audioVisualizer.getContext('2d') : null;
+const cropModal = document.getElementById('cropModal');
+const cropCanvas = document.getElementById('cropCanvas');
+const cancelCropBtn = document.getElementById('cancelCropBtn');
+const performCropOcrBtn = document.getElementById('performCropOcrBtn');
 
 // ─── Init ───
 function init() {
-  providerSelect.value    = provider;
-  groqKeyInput.value      = groqKey     ? '••••••••••••••••' : '';
-  groqModelSelect.value   = groqModel;
-  geminiKeyInput.value    = geminiKey   ? '••••••••••••••••' : '';
+  providerSelect.value = provider;
+  groqKeyInput.value = groqKey ? '••••••••••••••••' : '';
+  groqModelSelect.value = groqModel;
+  geminiKeyInput.value = geminiKey ? '••••••••••••••••' : '';
   geminiModelSelect.value = geminiModel;
-  apiKeyInput.value       = apiKey      ? '••••••••••••••••' : '';
-  modelSelect.value       = openaiModel;
+  apiKeyInput.value = apiKey ? '••••••••••••••••' : '';
+  modelSelect.value = openaiModel;
 
   ollamaEndpointInput.value = ollamaEndpoint;
-  ollamaModelSelect.value   = ollamaModel;
+  ollamaModelSelect.value = ollamaModel;
   speechVocabularyInput.value = speechVocabulary;
   snippetModeToggle.checked = snippetMode;
 
@@ -307,7 +322,7 @@ glassBtn.addEventListener('click', toggleGlassMode);
 
 // ─── Provider UI ───
 function toggleProviderUI(p) {
-  groqSection.style.display   = p === 'groq'   ? 'block' : 'none';
+  groqSection.style.display = p === 'groq' ? 'block' : 'none';
   geminiSection.style.display = p === 'gemini' ? 'block' : 'none';
   openaiSection.style.display = p === 'openai' ? 'block' : 'none';
   ollamaSection.style.display = p === 'ollama' ? 'block' : 'none';
@@ -1042,10 +1057,10 @@ async function askCrackit(question, { fromSpeech = false } = {}) {
 
   try {
     let fullAnswer = '';
-    if (provider === 'groq')        fullAnswer = await callGroq(thinkingEl);
+    if (provider === 'groq') fullAnswer = await callGroq(thinkingEl);
     else if (provider === 'gemini') fullAnswer = await callGemini(thinkingEl);
     else if (provider === 'ollama') fullAnswer = await callOllama(thinkingEl);
-    else                            fullAnswer = await callOpenAI(thinkingEl);
+    else fullAnswer = await callOpenAI(thinkingEl);
 
     conversationHistory.push({ role: 'assistant', content: fullAnswer });
 
@@ -1193,21 +1208,25 @@ function buildMessages() {
   const cleanPrompt = stripMarkdown(SYSTEM_PROMPT);
 
   const enforced = cleanPrompt + `\n\n` +
-`CRITICAL — YOU MUST FOLLOW THIS EXACT ANSWER STYLE:
+    `CRITICAL — YOU MUST FOLLOW THIS EXACT ANSWER STYLE:
 
 1. FIRST PERSON ALWAYS: "I built", "In my project", "I used" — you ARE the candidate
 2. FIRST SENTENCE = THE ANSWER. No warm-up, no "So basically..."
 3. REAL PROJECT EXAMPLES ONLY: Use domains like insurance, e-commerce, banking, healthcare. Use class names like BaseEntity, NotificationService, ClaimsService, CustomerRepository. NEVER use Vehicle/Car, Animal/Dog, Shape/Circle
-4. CODE SIGNATURES: When explaining methods, show signatures on their own lines like:
-   SendNotification(string email)
-   SendNotification(string email, string subject)
-5. MULTI-PART QUESTIONS: Split with section headers like "Method Overloading (30-40 sec)" then paragraphs, then "Method Overriding (30-40 sec)"
-6. SINGLE QUESTIONS: No headers. Just 3-4 short paragraphs
+4. EMOJI HEADER FORMAT: ALWAYS structure answers with these EXACT emoji headers in this order:
+   🔵 Definition / Main Concept
+   ⭐ Why We Use It / Key Purpose
+   🟢 Real Project Usage
+   🟠 Advantages / Benefits
+   🔴 Interview Point / Must Remember
+   ✅ Best Practice
+   Simple Interview Answer (30 Seconds)
+5. Use bullet points (•) for listing items under each section
+6. CODE BLOCKS: Use \`\`\`csharp for C# code examples
 7. TRADE-OFF: Always include one near the end ("The trade-off is...")
 8. NUMBERS: "reduced by 40%", "handled 5k req/sec", "cut from 12s to 800ms"
-9. STRONG ENDING: Last sentence = result or impact. Never trail off
-10. NATURAL SPEECH: Like you're talking to the interviewer across a table. NO textbook/Wikipedia tone
-11. SPEECH CORRECTION: Questions may come from speech-to-text and contain misspelled words. ALWAYS auto-correct the question first. Examples: "Ingeretans" → "Inheritance", "polymorfism" → "Polymorphism", "dependensy injection" → "Dependency Injection", "enity framework" → "Entity Framework". Figure out the ACTUAL intended technical term, then answer THAT topic. NEVER answer the misspelled word literally`;
+9. NATURAL SPEECH: Like you're talking to the interviewer across a table. NO textbook/Wikipedia tone
+10. SPEECH CORRECTION: Questions may come from speech-to-text and contain misspelled words. ALWAYS auto-correct the question first. Examples: "Ingeretans" → "Inheritance", "polymorfism" → "Polymorphism", "dependensy injection" → "Dependency Injection", "enity framework" → "Entity Framework". Figure out the ACTUAL intended technical term, then answer THAT topic. NEVER answer the misspelled word literally`;
 
   const msgs = [{ role: 'system', content: enforced }];
 
@@ -1216,17 +1235,60 @@ function buildMessages() {
     msgs.push(
       // Example 1: Single concept
       { role: 'user', content: 'What is inheritance?' },
-      { role: 'assistant', content: `Inheritance allows me to create a new class from an existing class so I can reuse common functionality and extend it without duplicating code.
+      {
+        role: 'assistant', content: `🔵 Definition / Main Concept
 
-In my projects, I use inheritance where multiple classes share the same behavior. For example, I had a BaseEntity class with common properties like Id, CreatedDate, ModifiedDate, and IsDeleted. All domain entities such as Customer, Policy, and Claim inherited from it instead of repeating the same fields in every class.
+Inheritance is a fundamental OOP concept that allows a class to inherit properties and methods from another class, promoting code reuse and establishing a hierarchy between classes.
 
-The trade-off is that I use inheritance only when there's a true "is-a" relationship. If I just need shared functionality, I usually prefer composition because it keeps the code more flexible.
+⭐ Why We Use It / Key Purpose
 
-As a result, we reduced duplicate code and made the model easier to maintain across the application.` },
+• Reduces code duplication across similar classes
+• Creates logical parent-child relationships
+• Enables polymorphism and method overriding
+• Makes maintenance easier — change once in base, reflects everywhere
+
+🟢 Real Project Usage
+
+In our Insurance Platform, I created a \`BaseEntity\` class with common fields like \`Id\`, \`CreatedDate\`, \`ModifiedDate\`, and \`IsDeleted\`. All domain entities like \`Customer\`, \`Policy\`, and \`Claim\` inherited from it — no need to repeat these fields in every class.
+
+🟠 Advantages / Benefits
+
+• Centralized common logic
+• Reduced duplicate code by 40%
+• Easier to add audit fields across all entities
+• Supports Open/Closed Principle
+
+🔴 Interview Point / Must Remember
+
+• Use inheritance only for true "is-a" relationships
+• Prefer composition over inheritance when you just need shared functionality
+• Deep inheritance chains (3+ levels) can lead to tight coupling
+
+✅ Best Practice
+
+\`\`\`csharp
+public abstract class BaseEntity
+{
+    public int Id { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public bool IsDeleted { get; set; }
+}
+
+public class Policy : BaseEntity
+{
+    public string PolicyNumber { get; set; }
+    public decimal Premium { get; set; }
+}
+\`\`\`
+
+Simple Interview Answer (30 Seconds)
+
+Inheritance allows me to create a new class from an existing class to reuse common functionality. In my project, I had a BaseEntity with Id, CreatedDate, and IsDeleted — all entities like Policy and Claim inherited from it, reducing duplicate code by 40%. I use it only for true is-a relationships; otherwise I prefer composition for flexibility.` },
 
       // Example 2: Multi-part question with sections + code
       { role: 'user', content: 'What is method overloading and overriding?' },
-      { role: 'assistant', content: `Method Overloading (30–40 sec)
+      {
+        role: 'assistant', content: `Method Overloading (30–40 sec)
 
 Method overloading means having multiple methods with the same name but different parameters in the same class. It's a compile-time polymorphism.
 
@@ -1258,7 +1320,8 @@ The trade-off is that I use overriding only when there's a genuine inheritance r
 
       // Example 3: Architecture question
       { role: 'user', content: 'What is CQRS?' },
-      { role: 'assistant', content: `CQRS stands for Command Query Responsibility Segregation — it means I separate my read operations from my write operations into different models instead of using one model for everything.
+      {
+        role: 'assistant', content: `CQRS stands for Command Query Responsibility Segregation — it means I separate my read operations from my write operations into different models instead of using one model for everything.
 
 In my insurance project, we had a policy management system where the read side needed to serve complex dashboard queries joining 8-10 tables, while the write side handled policy creation and updates with heavy business validation. Using a single model for both was causing performance issues — the dashboard was taking 8 seconds to load.
 
@@ -1332,7 +1395,7 @@ async function callGemini(thinkingEl) {
           const data = JSON.parse(line.slice(6));
           const token = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           if (token) { full += token; updateCard(card, full); }
-        } catch (_) {}
+        } catch (_) { }
       }
     }
   }
@@ -1373,7 +1436,7 @@ async function streamOpenAIFormat(response, thinkingEl, tag) {
           const data = JSON.parse(line.slice(6));
           const token = data.choices?.[0]?.delta?.content || '';
           if (token) { full += token; updateCard(card, full); }
-        } catch (_) {}
+        } catch (_) { }
       }
     }
   }
@@ -1382,11 +1445,58 @@ async function streamOpenAIFormat(response, thinkingEl, tag) {
 }
 
 function updateCard(card, text) {
-  // Highlight inline code `backticks`
-  const html = escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
+  const html = renderMarkdown(text);
   // Preserve controls (copy + TTS buttons)
   card.innerHTML = `<div class="answer-controls"><button class="copy-btn" onclick="copyCard(this)">📋 Copy</button><button class="tts-btn" onclick="toggleTTSBtn(this)" title="Read aloud">🔊</button></div>${html}`;
 }
+
+// ─── Markdown Renderer ───
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+
+  // Code blocks: ```lang\ncode\n``` → <pre><code>
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
+    return `<div class="code-block">${langLabel}<button class="code-copy-btn" onclick="copyCodeBlock(this)">📋</button><pre><code>${code.trim()}</code></pre></div>`;
+  });
+
+  // Bold: **text** → <strong>
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Italic: *text* → <em>
+  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+
+  // Inline code: `text` → <code>
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Headers: ### text → styled div
+  html = html.replace(/^### (.+)$/gm, '<div class="md-h3">$1</div>');
+  html = html.replace(/^## (.+)$/gm, '<div class="md-h2">$1</div>');
+
+  // Numbered lists: 1. text → <div class="md-list-item">
+  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="md-list-item"><span class="md-list-num">$1.</span> $2</div>');
+
+  // Bullet lists: - text or • text
+  html = html.replace(/^[-•]\s+(.+)$/gm, '<div class="md-list-item"><span class="md-list-bullet">•</span> $1</div>');
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr class="md-hr">');
+
+  return html;
+}
+
+function copyCodeBlock(btn) {
+  const code = btn.closest('.code-block').querySelector('code').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = '✅';
+      setTimeout(() => btn.textContent = '📋', 2000);
+    }).catch(() => fallbackCopy(code, btn));
+  } else {
+    fallbackCopy(code, btn);
+  }
+}
+window.copyCodeBlock = copyCodeBlock;
 
 // ─── Copy card ───
 function copyCard(btn) {
@@ -1921,7 +2031,7 @@ function loadConversationHistory() {
 
 // Auto-save after each message
 const originalAskCrackit = askCrackit;
-askCrackit = async function(question) {
+askCrackit = async function (question) {
   await originalAskCrackit.call(this, question);
   saveConversationHistory();
 };
