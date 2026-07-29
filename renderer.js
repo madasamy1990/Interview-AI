@@ -1117,7 +1117,8 @@ function addAnswerCard(thinkingEl) {
       </div>
     </div>`;
   chatArea.appendChild(row);
-  scrollBottom();
+  // Scroll to the TOP of this answer so user reads from beginning
+  row.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return row;
 }
 
@@ -1137,7 +1138,6 @@ function addFollowUpChips(answer) {
     chipsEl.appendChild(el);
   });
   chatArea.appendChild(chipsEl);
-  scrollBottom();
 }
 
 function generateChips(answer) {
@@ -1386,7 +1386,6 @@ function updateCard(card, text) {
   const html = escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
   // Preserve controls (copy + TTS buttons)
   card.innerHTML = `<div class="answer-controls"><button class="copy-btn" onclick="copyCard(this)">📋 Copy</button><button class="tts-btn" onclick="toggleTTSBtn(this)" title="Read aloud">🔊</button></div>${html}`;
-  scrollBottom();
 }
 
 // ─── Copy card ───
@@ -1397,10 +1396,31 @@ function copyCard(btn) {
   clone.querySelector('.answer-controls')?.remove();
   clone.querySelector('.quick-actions')?.remove();
   const text = clone.textContent.trim();
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => btn.textContent = '📋 Copy', 2000);
-  });
+
+  // Try modern clipboard API first, fallback to execCommand
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy', 2000);
+    }).catch(() => {
+      fallbackCopy(text, btn);
+    });
+  } else {
+    fallbackCopy(text, btn);
+  }
+}
+
+function fallbackCopy(text, btn) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+  btn.textContent = '✅ Copied!';
+  setTimeout(() => btn.textContent = '📋 Copy', 2000);
 }
 window.copyCard = copyCard;
 
