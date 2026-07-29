@@ -57,6 +57,10 @@ COMMANDS: "shorter" | "longer" | "example" | "rephrase" | "rapid fire" | "deep d
 
 FORMAT: Use the emoji-header structure above. Use bullet points (•) for lists. Use \`\`\`csharp for code blocks. Write in first person as if speaking to the interviewer.`;
 
+// ─── Prompt Version Control ───
+const PROMPT_VERSION = 'v4.0';
+localStorage.setItem('angel_prompt_version', PROMPT_VERSION);
+
 // Load custom prompt from localStorage, or use default
 let SYSTEM_PROMPT = localStorage.getItem('angel_custom_prompt') || DEFAULT_PROMPT;
 
@@ -1226,51 +1230,49 @@ function buildMessages() {
 7. TRADE-OFF: Always include one near the end ("The trade-off is...")
 8. NUMBERS: "reduced by 40%", "handled 5k req/sec", "cut from 12s to 800ms"
 9. NATURAL SPEECH: Like you're talking to the interviewer across a table. NO textbook/Wikipedia tone
-10. SPEECH CORRECTION: Questions may come from speech-to-text and contain misspelled words. ALWAYS auto-correct the question first. Examples: "Ingeretans" → "Inheritance", "polymorfism" → "Polymorphism", "dependensy injection" → "Dependency Injection", "enity framework" → "Entity Framework". Figure out the ACTUAL intended technical term, then answer THAT topic. NEVER answer the misspelled word literally`;
+10. SPEECH CORRECTION: Questions may come from speech-to-text and contain misspelled words. ALWAYS auto-correct the question first. Examples: "Ingeretans" → "Inheritance", "polymorfism" → "Polymorphism", "dependensy injection" → "Dependency Injection", "enity framework" → "Entity Framework". Figure out the ACTUAL intended technical term, then answer THAT topic. NEVER answer the misspelled word literally
+11. BANNED PHRASES — NEVER use these, ever:
+    ❌ "If required, I can also explain..."
+    ❌ "If needed, I can draw the execution flow..."
+    ❌ "As per my knowledge..."
+    ❌ "To the best of my knowledge..."
+    ❌ "Hope this helps"
+    ❌ "Feel free to ask"
+    — The Simple Interview Answer (30 Seconds) must end with a TRADE-OFF or IMPACT line. Never with an offer to explain more.
+12. COMPILE-TIME vs RUNTIME: For any question involving Overloading, Overriding, or Polymorphism — ALWAYS include this distinction:
+    • Overloading → Compile-time (compiler picks method by parameters)
+    • Overriding → Runtime (object type decides which method runs)
+    • Show as a comparison table in 🔴 Interview Point section`;
 
   const msgs = [{ role: 'system', content: enforced }];
 
   // Few-shot: EXACT ChatGPT answers the user verified
   if (conversationHistory.length <= 1) {
     msgs.push(
-      // Example 1: Single concept
+      // Example 1: OOP — Inheritance
       { role: 'user', content: 'What is inheritance?' },
       {
         role: 'assistant', content: `🔵 Definition / Main Concept
 
-Inheritance is a fundamental OOP concept that allows a class to inherit properties and methods from another class, promoting code reuse and establishing a hierarchy between classes.
+Inheritance is an OOP concept where a child class acquires the properties and methods of a parent class — establishing an "is-a" relationship and promoting code reuse across related classes.
 
 ⭐ Why We Use It / Key Purpose
 
-• Reduces code duplication across similar classes
-• Creates logical parent-child relationships
-• Enables polymorphism and method overriding
-• Makes maintenance easier — change once in base, reflects everywhere
+• Share common fields/methods across multiple classes — maintain in one place
+• Establish logical class hierarchy that mirrors real-world relationships
+• Enable polymorphism — child classes override parent behavior
+• Supports Open/Closed Principle — extend without modifying base
 
 🟢 Real Project Usage
 
-In our Insurance Platform, I created a \`BaseEntity\` class with common fields like \`Id\`, \`CreatedDate\`, \`ModifiedDate\`, and \`IsDeleted\`. All domain entities like \`Customer\`, \`Policy\`, and \`Claim\` inherited from it — no need to repeat these fields in every class.
-
-🟠 Advantages / Benefits
-
-• Centralized common logic
-• Reduced duplicate code by 40%
-• Easier to add audit fields across all entities
-• Supports Open/Closed Principle
-
-🔴 Interview Point / Must Remember
-
-• Use inheritance only for true "is-a" relationships
-• Prefer composition over inheritance when you just need shared functionality
-• Deep inheritance chains (3+ levels) can lead to tight coupling
-
-✅ Best Practice
+In our Mobile Device Protection Platform, every entity needed Id, CreatedDate, ModifiedDate, IsDeleted. I created a BaseEntity:
 
 \`\`\`csharp
 public abstract class BaseEntity
 {
     public int Id { get; set; }
     public DateTime CreatedDate { get; set; }
+    public DateTime ModifiedDate { get; set; }
     public bool IsDeleted { get; set; }
 }
 
@@ -1281,53 +1283,223 @@ public class Policy : BaseEntity
 }
 \`\`\`
 
+All 12 entities — Policy, Device, Claim — inherited from BaseEntity. Adding ModifiedBy audit field later required one change, reflected everywhere.
+
+🟠 Advantages / Benefits
+
+• Reduced duplicate code by 40% across 12 entity classes
+• Audit fields managed in one place — zero repetition
+• Enables runtime polymorphism through method overriding
+• Consistent structure across entire domain model
+
+🔴 Interview Point / Must Remember
+
+• Use inheritance ONLY for "is-a" relationships — Policy IS-A BaseEntity ✅
+• "Has-a" relationships → use Composition, not inheritance
+• Deep inheritance chains (3+ levels) = tight coupling = maintenance nightmare
+• Use abstract to prevent direct instantiation of base class
+• Use sealed to prevent further inheritance when needed
+
+✅ Best Practice
+
+• Max 2 levels of inheritance in production code
+• Prefer interfaces for behavior contracts, abstract classes for shared state
+
 Simple Interview Answer (30 Seconds)
 
-Inheritance allows me to create a new class from an existing class to reuse common functionality. In my project, I had a BaseEntity with Id, CreatedDate, and IsDeleted — all entities like Policy and Claim inherited from it, reducing duplicate code by 40%. I use it only for true is-a relationships; otherwise I prefer composition for flexibility.` },
+Inheritance lets a child class reuse properties and methods from a parent — it's an is-a relationship. In my project, all entities like Policy, Device, and Claim inherited from BaseEntity which had Id, CreatedDate, IsDeleted — one audit field change reflected across all 12 entities, reducing duplication by 40%. Trade-off: I use inheritance only for true is-a relationships — for shared behavior without hierarchy, composition is more flexible and easier to test.` },
 
-      // Example 2: Multi-part question with sections + code
+      // Example 2: OOP — Overloading + Overriding
       { role: 'user', content: 'What is method overloading and overriding?' },
       {
-        role: 'assistant', content: `Method Overloading (30–40 sec)
+        role: 'assistant', content: `🔵 Definition / Main Concept
 
-Method overloading means having multiple methods with the same name but different parameters in the same class. It's a compile-time polymorphism.
+Method Overloading is when multiple methods share the same name but have different parameters within the same class. Method Overriding is when a child class provides its own implementation of a method already defined in the parent class.
 
-In one of my projects, I had a notification service where different notification types required different inputs:
+⭐ Why We Use It / Key Purpose
 
-SendNotification(string email)
-SendNotification(string email, string subject)
-SendNotification(string email, string subject, List<string> attachments)
+• Overloading: One method name handles multiple input scenarios — cleaner API design
+• Overriding: Child class customizes parent behavior without modifying the parent
+• Both reduce code duplication and improve maintainability
+• Overriding is the foundation of runtime polymorphism
 
-The compiler chooses the correct method based on the parameters passed. This kept the API clean and avoided creating multiple method names.
+🟢 Real Project Usage
 
-Method Overriding (30–40 sec)
+In our Mobile Device Protection Platform, I used both practically.
 
-Method overriding means a derived class provides its own implementation of a virtual method defined in the base class. It's runtime polymorphism.
+For Overloading — in \`NotificationService\`, I had three versions:
 
-In my project, I had a base notification class:
+\`\`\`csharp
+public void SendNotification(string email) { }
+public void SendNotification(string email, string subject) { }
+public void SendNotification(string email, string subject, List<string> attachments) { }
+\`\`\`
 
-public virtual void Send()
+For Overriding — in \`ClaimsProcessing\`, BaseClaim had a virtual ProcessClaim(). SpecialClaim overrode it — no if-else chain needed:
 
-Then each notification type implemented its own behavior:
+\`\`\`csharp
+public class BaseClaim
+{
+    public virtual void ProcessClaim() { /* Default */ }
+}
 
-EmailNotification : Send()
-SmsNotification : Send()
-PushNotification : Send()
+public class SpecialClaim : BaseClaim
+{
+    public override void ProcessClaim() { /* Custom logic */ }
+}
+\`\`\`
 
-The application called Send(), and the correct implementation was selected at runtime based on the object type.
+🟠 Advantages / Benefits
 
-The trade-off is that I use overriding only when there's a genuine inheritance relationship. Otherwise, I prefer interfaces or composition to keep the design more flexible.` },
+• Overloading: API stays clean — one method name, flexible inputs
+• Overriding: Eliminates if-else type-checking chains
+• Adding a new claim type = new subclass only, zero existing code change
+• Overriding enables runtime polymorphism — same call, different behavior per object
 
-      // Example 3: Architecture question
+🔴 Interview Point / Must Remember
+
+| | Overloading | Overriding |
+|--|------------|------------|
+| Where | Same class | Parent → Child |
+| Parameters | Different | Same |
+| Resolved At | Compile-time | Runtime |
+| Keyword | None | virtual + override |
+
+• Without virtual keyword, C# uses base version even if child redefines the method
+• Use sealed to prevent further overriding down the chain
+
+✅ Best Practice
+
+\`\`\`csharp
+// Prevent further overriding with sealed
+public sealed class FinalClaim : BaseClaim
+{
+    public override void ProcessClaim() { /* Final */ }
+}
+\`\`\`
+
+Simple Interview Answer (30 Seconds)
+
+Overloading = same name, different parameters, compile-time resolution. Overriding = child class reimplementing parent's virtual method, runtime resolution — that's polymorphism. In my project, NotificationService had 3 overloaded SendNotification methods; ClaimsProcessing used overriding — BaseClaim had virtual ProcessClaim(), SpecialClaim overrode it with no if-else. Trade-off: deep override chains cause tight coupling — I keep it to 2 levels max and use sealed when further overriding must be prevented.` },
+
+      // Example 3: Architecture — CQRS
       { role: 'user', content: 'What is CQRS?' },
       {
-        role: 'assistant', content: `CQRS stands for Command Query Responsibility Segregation — it means I separate my read operations from my write operations into different models instead of using one model for everything.
+        role: 'assistant', content: `🔵 Definition / Main Concept
 
-In my insurance project, we had a policy management system where the read side needed to serve complex dashboard queries joining 8-10 tables, while the write side handled policy creation and updates with heavy business validation. Using a single model for both was causing performance issues — the dashboard was taking 8 seconds to load.
+CQRS stands for Command Query Responsibility Segregation — it separates read operations (Queries) from write operations (Commands) into completely different models. Instead of one model handling everything, reads and writes have dedicated, optimized pipelines.
 
-So I split it: commands went through MediatR handlers with full domain validation and wrote to the normalized SQL Server tables, while queries used lightweight Dapper read models optimized for each view. The dashboard query dropped from 8 seconds to under 500ms.
+⭐ Why We Use It / Key Purpose
 
-The trade-off is added complexity — you're maintaining two models instead of one, and you need to keep them in sync. For simple CRUD, it's overkill. But for our use case with heavy reads and complex writes, it was absolutely the right call.` }
+• Read and write workloads have different performance needs — CQRS handles each optimally
+• Commands go through full domain validation; queries bypass domain logic for speed
+• Scales reads and writes independently
+• Pairs perfectly with Event Sourcing and MediatR in .NET
+
+🟢 Real Project Usage
+
+In our Insurance Platform, the policy dashboard joined 8-10 tables and was taking 8 seconds to load — but the write side had heavy business validation for policy creation.
+
+\`\`\`csharp
+// Command — write side with full validation
+public class CreatePolicyCommand : IRequest<int>
+{
+    public string PolicyNumber { get; set; }
+    public decimal Premium { get; set; }
+}
+
+// Query — read side, lightweight Dapper model
+public class GetPolicyDashboardQuery : IRequest<PolicyDashboardDto> { }
+\`\`\`
+
+Commands went through MediatR handlers with EF Core; queries used Dapper with optimized SQL views. Dashboard dropped from 8 seconds to under 500ms.
+
+🟠 Advantages / Benefits
+
+• Read performance improved by 93% — 8s → 500ms
+• Write side has clean domain validation without read concerns polluting it
+• Read models can be cached independently
+• Each side scales separately based on load
+
+🔴 Interview Point / Must Remember
+
+• CQRS ≠ Event Sourcing — they're complementary, not the same
+• Commands return void or Id only — never return full data
+• Queries are read-only — never modify state
+• Use MediatR in .NET to implement clean CQRS handlers
+
+✅ Best Practice
+
+• Use CQRS only when read/write complexity justifies it
+• For simple CRUD apps — CQRS is overkill, adds unnecessary complexity
+
+Simple Interview Answer (30 Seconds)
+
+CQRS separates read and write operations into different models — commands handle writes with full validation, queries handle reads with lightweight optimized models. In my project, our policy dashboard was taking 8 seconds — after implementing CQRS with MediatR and Dapper read models, it dropped to 500ms. Trade-off: it adds complexity — two models to maintain — so I only use it when read and write workloads have significantly different performance requirements.` },
+
+      // Example 4: SQL/Performance
+      { role: 'user', content: 'How did you optimize SQL queries in your project?' },
+      {
+        role: 'assistant', content: `🔵 Definition / Main Concept
+
+SQL query optimization is the process of rewriting queries and structuring database objects — indexes, stored procedures, execution plans — to reduce query execution time and server load. It directly impacts application performance and user experience.
+
+⭐ Why We Use It / Key Purpose
+
+• Slow queries = slow UI = poor user experience
+• Unoptimized queries cause CPU spikes, blocking, and deadlocks in production
+• Proper indexing can reduce query time by 90%+
+• Critical for high-traffic APIs serving thousands of concurrent users
+
+🟢 Real Project Usage
+
+In our Insurance Platform, the claims report query joined 6 tables and scanned 2 million rows — it was taking 12 seconds. I ran the execution plan and found a missing index on ClaimDate and PolicyId.
+
+\`\`\`sql
+-- Before: Full table scan — 12 seconds
+SELECT c.*, p.PolicyNumber
+FROM Claims c
+JOIN Policies p ON c.PolicyId = p.Id
+WHERE c.ClaimDate BETWEEN @From AND @To
+
+-- Added composite index
+CREATE NONCLUSTERED INDEX IX_Claims_Date_Policy
+ON Claims (ClaimDate, PolicyId)
+INCLUDE (Status, Amount)
+
+-- After: Index seek — 800ms
+\`\`\`
+
+Also replaced N+1 query pattern with a single JOIN — dropped 300 DB calls to 1 per request.
+
+🟠 Advantages / Benefits
+
+• Query time dropped from 12 seconds to 800ms — 93% improvement
+• DB CPU usage reduced by 60% during peak hours
+• Eliminated N+1 pattern — 300 calls → 1 call per request
+• Reports that were timing out now load in under 1 second
+
+🔴 Interview Point / Must Remember
+
+• Always check Execution Plan first — "Clustered Index Scan" = problem
+• Composite index column order matters — most selective column first
+• SELECT * is an anti-pattern — always select only needed columns
+• Avoid functions on indexed columns in WHERE clause — disables index usage
+• N+1 problem = loading related data in a loop — fix with JOIN or Include()
+
+✅ Best Practice
+
+\`\`\`sql
+-- ❌ Bad — function on indexed column disables index
+WHERE YEAR(ClaimDate) = 2024
+
+-- ✅ Good — range query uses index
+WHERE ClaimDate BETWEEN '2024-01-01' AND '2024-12-31'
+\`\`\`
+
+Simple Interview Answer (30 Seconds)
+
+I optimize SQL by first checking the execution plan to identify table scans, then adding targeted indexes and rewriting queries. In my project, a claims report joining 6 tables was taking 12 seconds — I added a composite index on ClaimDate and PolicyId, which brought it to 800ms. I also eliminated an N+1 pattern that was firing 300 DB calls per request — replaced with a single JOIN. Trade-off: over-indexing slows down inserts and updates, so I index based on actual query patterns, not preemptively.` }
     );
   }
 
@@ -1452,12 +1624,26 @@ function updateCard(card, text) {
 
 // ─── Markdown Renderer ───
 function renderMarkdown(text) {
+  // Normalize line endings first
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Step 1: Extract code blocks BEFORE escapeHtml (preserve raw code)
+  const codeBlocks = [];
+  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push({ lang: lang.trim(), code: code.trim() });
+    return `%%CODEBLOCK_${idx}%%`;
+  });
+
+  // Step 2: Escape HTML for the rest
   let html = escapeHtml(text);
 
-  // Code blocks: ```lang\ncode\n``` → <pre><code>
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+  // Step 3: Re-insert code blocks as proper HTML
+  html = html.replace(/%%CODEBLOCK_(\d+)%%/g, (match, idx) => {
+    const { lang, code } = codeBlocks[parseInt(idx)];
     const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
-    return `<div class="code-block">${langLabel}<button class="code-copy-btn" onclick="copyCodeBlock(this)">📋</button><pre><code>${code.trim()}</code></pre></div>`;
+    const escaped = escapeHtml(code);
+    return `<div class="code-block">${langLabel}<button class="code-copy-btn" onclick="copyCodeBlock(this)">📋</button><pre><code>${escaped}</code></pre></div>`;
   });
 
   // Bold: **text** → <strong>
@@ -1473,7 +1659,7 @@ function renderMarkdown(text) {
   html = html.replace(/^### (.+)$/gm, '<div class="md-h3">$1</div>');
   html = html.replace(/^## (.+)$/gm, '<div class="md-h2">$1</div>');
 
-  // Numbered lists: 1. text → <div class="md-list-item">
+  // Numbered lists: 1. text
   html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="md-list-item"><span class="md-list-num">$1.</span> $2</div>');
 
   // Bullet lists: - text or • text
