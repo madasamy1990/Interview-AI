@@ -28,14 +28,14 @@ ANSWER STRUCTURE (use this EXACT order for EVERY answer — no exceptions):
 🎯 Simple Interview Answer (30 Seconds)  ← ALWAYS FIRST
 [3-4 sentences: Definition in 1 line + Real project example + Trade-off. Speak like you're answering live.]
 
-🔵 Definition / Main Concept
-[What it is — 1-2 sentences, clear and direct]
-
-🟢 Real Project Usage  ← MOST IMPORTANT SECTION
+🟢 Real Project Usage  ← MOST IMPORTANT SECTION (2nd)
 [Specific example: module name, class name, result with numbers. This is what impresses most.]
 
-🔴 Interview Point / Must Remember
+🔴 Interview Point / Must Remember  ← SENIOR THINKING (3rd)
 [Trade-off, senior-level insight, what NOT to do — this shows experience]
+
+🔵 Definition / Main Concept
+[What it is — 1-2 sentences, clear and direct]
 
 🟠 Advantages / Benefits
 [3-4 bullet points — practical, not textbook]
@@ -45,9 +45,9 @@ ANSWER STRUCTURE (use this EXACT order for EVERY answer — no exceptions):
 
 SMART RULES:
 ✅ Simple Answer FIRST — always. Interviewer attention captured in first 30 seconds.
-✅ Real Project section must have: module name + specific class/method + number (%, ms, count)
-✅ Trade-off in Simple Answer AND Interview Point
-✅ Use emoji headers EXACTLY as shown above — every answer, every time
+✅ Real Project SECOND — this is what impresses interviewers most
+✅ Interview Point THIRD — trade-offs show senior thinking
+✅ Definition, Advantages, Best Practice come AFTER the top 3
 
 COMMANDS: "shorter" | "longer" | "example" | "rephrase" | "rapid fire" | "deep dive" | "HR mode"
 
@@ -1215,9 +1215,9 @@ function buildMessages() {
 3. REAL PROJECT EXAMPLES ONLY: Use domains like insurance, e-commerce, banking, healthcare. Use class names like BaseEntity, NotificationService, ClaimsService, CustomerRepository. NEVER use Vehicle/Car, Animal/Dog, Shape/Circle
 4. ANSWER ORDER — ALWAYS follow this EXACT sequence, no exceptions:
    🎯 Simple Interview Answer (30 Seconds)  ← FIRST ALWAYS
+   🟢 Real Project Usage  ← SECOND (most impressive)
+   🔴 Interview Point / Must Remember  ← THIRD (senior thinking)
    🔵 Definition / Main Concept
-   🟢 Real Project Usage  ← most impressive section
-   🔴 Interview Point / Must Remember
    🟠 Advantages / Benefits
    ✅ Best Practice
 5. Use bullet points (•) for listing items under each section
@@ -1240,8 +1240,8 @@ function buildMessages() {
 
   const msgs = [{ role: 'system', content: enforced }];
 
-  // Few-shot: EXACT ChatGPT answers the user verified
-  if (conversationHistory.length <= 1) {
+  // Few-shot: ALWAYS inject format examples to ensure consistent answer structure
+  {
     msgs.push(
       // Example 1: OOP — Inheritance
       { role: 'user', content: 'What is inheritance?' },
@@ -1249,10 +1249,6 @@ function buildMessages() {
         role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
 
 Inheritance lets a child class reuse properties and methods from a parent — it's an is-a relationship. In my project, all entities like Policy, Device, and Claim inherited from BaseEntity which had Id, CreatedDate, IsDeleted — one audit field change reflected across all 12 entities, reducing duplication by 40%. Trade-off: I use inheritance only for true is-a relationships — for shared behavior without hierarchy, composition is more flexible and easier to test.
-
-🔵 Definition / Main Concept
-
-Inheritance is an OOP concept where a child class acquires the properties and methods of a parent class — establishing an "is-a" relationship and promoting code reuse across related classes.
 
 🟢 Real Project Usage
 
@@ -1282,6 +1278,10 @@ public class Policy : BaseEntity
 • Use abstract to prevent direct instantiation of base class
 • Use sealed to prevent further inheritance when needed
 
+🔵 Definition / Main Concept
+
+Inheritance is an OOP concept where a child class acquires the properties and methods of a parent class — establishing an "is-a" relationship and promoting code reuse across related classes.
+
 🟠 Advantages / Benefits
 
 • Reduced duplicate code by 40% across 12 entity classes
@@ -1300,10 +1300,6 @@ public class Policy : BaseEntity
         role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
 
 Overloading = same name, different parameters, compile-time resolution. Overriding = child class reimplementing parent's virtual method, runtime resolution — that's polymorphism. In my project, NotificationService had 3 overloaded SendNotification methods; ClaimsProcessing used overriding — BaseClaim had virtual ProcessClaim(), SpecialClaim overrode it — no if-else chain, zero existing code change when adding new claim type. Trade-off: deep override chains cause tight coupling — I keep it to 2 levels max and use sealed when further overriding must be prevented.
-
-🔵 Definition / Main Concept
-
-Method Overloading is when multiple methods share the same name but have different parameters within the same class. Method Overriding is when a child class provides its own implementation of a method already defined in the parent class.
 
 🟢 Real Project Usage
 
@@ -1343,6 +1339,10 @@ public class SpecialClaim : BaseClaim
 • Without virtual keyword, C# uses base version even if child redefines the method
 • Use sealed to prevent further overriding down the chain
 
+🔵 Definition / Main Concept
+
+Method Overloading is when multiple methods share the same name but have different parameters within the same class. Method Overriding is when a child class provides its own implementation of a method already defined in the parent class.
+
 🟠 Advantages / Benefits
 
 • Overloading: API stays clean — one method name, flexible inputs
@@ -1366,10 +1366,6 @@ public sealed class FinalClaim : BaseClaim
         role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
 
 CQRS separates read and write operations into different models — commands handle writes with full validation, queries handle reads with lightweight optimized models. In my project, our policy dashboard was taking 8 seconds — after CQRS with MediatR commands and Dapper read models, it dropped to 500ms. Trade-off: adds complexity — two models to maintain — so I only use it when read and write workloads have significantly different performance needs.
-
-🔵 Definition / Main Concept
-
-CQRS stands for Command Query Responsibility Segregation — it separates read operations (Queries) from write operations (Commands) into completely different models with dedicated, optimized pipelines.
 
 🟢 Real Project Usage
 
@@ -1397,6 +1393,10 @@ Commands → MediatR + EF Core. Queries → Dapper + optimized SQL views. Dashbo
 • Use MediatR in .NET to implement clean CQRS handlers
 • For simple CRUD — CQRS is overkill
 
+🔵 Definition / Main Concept
+
+CQRS stands for Command Query Responsibility Segregation — it separates read operations (Queries) from write operations (Commands) into completely different models with dedicated, optimized pipelines.
+
 🟠 Advantages / Benefits
 
 • Read performance improved 93% — 8s → 500ms
@@ -1415,10 +1415,6 @@ Commands → MediatR + EF Core. Queries → Dapper + optimized SQL views. Dashbo
         role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
 
 I optimize SQL by first checking the execution plan to identify table scans, then adding targeted indexes and rewriting queries. In my project, a claims report joining 6 tables was taking 12 seconds — I added a composite index on ClaimDate and PolicyId, brought it to 800ms. Also eliminated N+1 firing 300 DB calls per request — replaced with a single JOIN. Trade-off: over-indexing slows inserts and updates, so I index based on actual query patterns, not preemptively.
-
-🔵 Definition / Main Concept
-
-SQL query optimization means reducing execution time and resource consumption by improving query logic, indexing strategy, and eliminating wasteful operations like SELECT * and N+1 patterns.
 
 🟢 Real Project Usage
 
@@ -1448,6 +1444,10 @@ Also replaced N+1 (300 calls) → single JOIN. Result: 12s → 800ms, 93% improv
 • SELECT * is an anti-pattern — always select only needed columns
 • Avoid functions on indexed columns in WHERE — disables index usage
 • N+1 = loading related data in a loop — fix with JOIN or Include()
+
+🔵 Definition / Main Concept
+
+SQL query optimization means reducing execution time and resource consumption by improving query logic, indexing strategy, and eliminating wasteful operations like SELECT * and N+1 patterns.
 
 🟠 Advantages / Benefits
 
@@ -1496,7 +1496,15 @@ async function callGroq(thinkingEl) {
 
 // ✨ GEMINI
 async function callGemini(thinkingEl) {
-  const contents = conversationHistory.map(m => ({
+  // Use buildMessages() to get enforced rules + few-shot examples (same as Groq/OpenAI)
+  const allMessages = buildMessages();
+
+  // Extract system message for Gemini's system_instruction
+  const systemMsg = allMessages.find(m => m.role === 'system');
+  const nonSystemMsgs = allMessages.filter(m => m.role !== 'system');
+
+  // Convert OpenAI format → Gemini format
+  const contents = nonSystemMsgs.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }]
   }));
@@ -1507,7 +1515,7 @@ async function callGemini(thinkingEl) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT + '\n\nCRITICAL: Answer in first person as the candidate. Keep SHORT (3-6 paragraphs). Include real project example with numbers. No textbook/Wikipedia style. Sound like a real senior engineer speaking naturally.' }] },
+        system_instruction: { parts: [{ text: systemMsg ? systemMsg.content : SYSTEM_PROMPT }] },
         contents,
         generationConfig: { temperature: 0.6, maxOutputTokens: 600 }
       })
