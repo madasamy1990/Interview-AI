@@ -54,8 +54,14 @@ COMMANDS: "shorter" | "longer" | "example" | "rephrase" | "rapid fire" | "deep d
 FORMAT: Use the emoji-header structure above. Use bullet points (•) for lists. Use \`\`\`csharp for code blocks. Write in first person as if speaking to the interviewer.`;
 
 // ─── Prompt Version Control ───
-const PROMPT_VERSION = 'v4.0';
-localStorage.setItem('angel_prompt_version', PROMPT_VERSION);
+const PROMPT_VERSION = 'v5.0';
+const savedVersion = localStorage.getItem('angel_prompt_version');
+if (savedVersion !== PROMPT_VERSION) {
+  // Version changed — reset cached prompt to new default
+  localStorage.removeItem('angel_custom_prompt');
+  localStorage.setItem('angel_prompt_version', PROMPT_VERSION);
+  console.log(`[Crack it] Prompt updated: ${savedVersion} → ${PROMPT_VERSION}`);
+}
 
 // Load custom prompt from localStorage, or use default
 let SYSTEM_PROMPT = localStorage.getItem('angel_custom_prompt') || DEFAULT_PROMPT;
@@ -1030,7 +1036,7 @@ CRITICAL RULES:
 // ══════════════════════════════════════════════════
 // ─── CORE: ASK CRACKIT ───
 // ══════════════════════════════════════════════════
-async function askCrackit(question, { fromSpeech = false } = {}) {
+async function askCrackit(question, { fromSpeech = false, _isRetry = false } = {}) {
   const currentKey = provider === 'groq' ? groqKey : provider === 'gemini' ? geminiKey : provider === 'ollama' ? 'ollama-local' : apiKey;
   if (!currentKey) {
     settingsPanel.style.display = 'flex';
@@ -1045,8 +1051,8 @@ async function askCrackit(question, { fromSpeech = false } = {}) {
     aiQuestion = `[SPEECH-TO-TEXT — may contain transcription errors, auto-correct any misspelled technical terms before answering]: ${question}`;
   }
 
-  // 1. Show user question bubble (RIGHT side) — show original text
-  addUserBubble(question);
+  // 1. Show user question bubble (RIGHT side) — skip on retry to avoid duplicate
+  if (!_isRetry) addUserBubble(question);
 
   // 2. Add to conversation history — use corrected version for AI
   conversationHistory.push({ role: 'user', content: aiQuestion });
@@ -1073,12 +1079,29 @@ async function askCrackit(question, { fromSpeech = false } = {}) {
     setStatusBar('Press Mic button to start');
   } catch (e) {
     thinkingEl?.remove();
-    setStatusBar('Press Mic button to start');
     let msg = e.message;
-    if (msg.includes('401') || msg.includes('API_KEY_INVALID')) msg = 'Invalid API key. Check ⚙️ Settings.';
-    if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) msg = 'Rate limit hit. Wait a moment.';
-    if (msg.includes('quota') || msg.includes('insufficient')) msg = 'Quota exceeded. Check billing or switch provider.';
-    showError(msg);
+    if (msg.includes('401') || msg.includes('API_KEY_INVALID')) {
+      setStatusBar('Press Mic button to start');
+      showError('Invalid API key. Check ⚙️ Settings.');
+    } else if (msg.includes('429') || msg.includes('Rate limit') || msg.includes('RESOURCE_EXHAUSTED')) {
+      // Auto-retry after delay
+      const waitSec = 8;
+      showError(`⏳ Rate limit hit — auto-retrying in ${waitSec}s...`);
+      let countdown = waitSec;
+      const timer = setInterval(() => {
+        countdown--;
+        setStatusBar(`⏳ Retrying in ${countdown}s...`);
+        if (countdown <= 0) clearInterval(timer);
+      }, 1000);
+      conversationHistory.pop(); // remove last user message (will be re-added on retry)
+      setTimeout(() => askCrackit(question, { fromSpeech, _isRetry: true }), waitSec * 1000);
+    } else if (msg.includes('quota') || msg.includes('insufficient')) {
+      setStatusBar('Press Mic button to start');
+      showError('Quota exceeded. Check billing or switch to Groq (free).');
+    } else {
+      setStatusBar('Press Mic button to start');
+      showError(msg);
+    }
   }
 }
 
@@ -1240,231 +1263,58 @@ function buildMessages() {
 
   const msgs = [{ role: 'system', content: enforced }];
 
-  // Few-shot: ALWAYS inject format examples to ensure consistent answer structure
+  // Few-shot: ONE compact example to teach format (saves ~10K tokens vs 4 examples)
   {
     msgs.push(
-      // Example 1: OOP — Inheritance
-      { role: 'user', content: 'What is inheritance?' },
+      { role: 'user', content: 'What is dependency injection?' },
       {
         role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
 
-Inheritance lets a child class reuse properties and methods from a parent — it's an is-a relationship. In my project, all entities like Policy, Device, and Claim inherited from BaseEntity which had Id, CreatedDate, IsDeleted — one audit field change reflected across all 12 entities, reducing duplication by 40%. Trade-off: I use inheritance only for true is-a relationships — for shared behavior without hierarchy, composition is more flexible and easier to test.
+Dependency Injection means instead of a class creating its own dependencies, they're passed in from outside — usually through the constructor. In my project, all services like ClaimsService, NotificationService were registered in DI container and injected via constructor — made unit testing easy with Moq, reduced tight coupling across 40+ services. Trade-off: too many constructor parameters = service doing too much — I refactor when it exceeds 4.
 
 🟢 Real Project Usage
 
-In our Mobile Device Protection Platform, every entity needed Id, CreatedDate, ModifiedDate, IsDeleted. I created a BaseEntity — all 12 entities (Policy, Device, Claim) inherited from it. Adding ModifiedBy audit field later required one change, reflected everywhere. Reduced duplicate code by 40%.
+In our Mobile Device Protection Platform, ClaimsService needed NotificationService, PolicyRepository, and ILogger. All injected via constructor:
 
 \`\`\`csharp
-public abstract class BaseEntity
+public class ClaimsService
 {
-    public int Id { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public DateTime ModifiedDate { get; set; }
-    public bool IsDeleted { get; set; }
+    private readonly INotificationService _notify;
+    private readonly IPolicyRepository _repo;
+    public ClaimsService(INotificationService notify, IPolicyRepository repo)
+    {
+        _notify = notify;
+        _repo = repo;
+    }
 }
-
-public class Policy : BaseEntity
-{
-    public string PolicyNumber { get; set; }
-    public decimal Premium { get; set; }
-}
+// Startup.cs
+services.AddScoped<IClaimsService, ClaimsService>();
 \`\`\`
+
+40+ services registered — switching from SQL to Cosmos DB required changing one line in DI registration, zero service code changes.
 
 🔴 Interview Point / Must Remember
 
-• Use inheritance ONLY for "is-a" relationships — Policy IS-A BaseEntity ✅
-• "Has-a" relationships → use Composition, not inheritance
-• Deep inheritance chains (3+ levels) = tight coupling = maintenance nightmare
-• Use abstract to prevent direct instantiation of base class
-• Use sealed to prevent further inheritance when needed
+• Constructor Injection = most common and recommended
+• Scoped vs Transient vs Singleton — wrong lifetime = memory leaks or stale data
+• 4+ constructor params = class has too many responsibilities → refactor
+• DI enables unit testing — inject mock instead of real service
 
 🔵 Definition / Main Concept
 
-Inheritance is an OOP concept where a child class acquires the properties and methods of a parent class — establishing an "is-a" relationship and promoting code reuse across related classes.
+DI is an IoC pattern where dependencies are provided externally rather than created internally, enabling loose coupling and testability.
 
 🟠 Advantages / Benefits
 
-• Reduced duplicate code by 40% across 12 entity classes
-• Audit fields managed in one place — zero repetition
-• Enables runtime polymorphism through method overriding
-• Consistent structure across entire domain model
+• Loose coupling — swap implementations without code changes
+• Unit testing with Moq — inject mocks easily
+• Single registration change = system-wide swap
+• Follows SOLID principles (D = Dependency Inversion)
 
 ✅ Best Practice
 
-• Max 2 levels of inheritance in production code
-• Prefer interfaces for behavior contracts, abstract classes for shared state` },
-
-      // Example 2: OOP — Overloading + Overriding
-      { role: 'user', content: 'What is method overloading and overriding?' },
-      {
-        role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
-
-Overloading = same name, different parameters, compile-time resolution. Overriding = child class reimplementing parent's virtual method, runtime resolution — that's polymorphism. In my project, NotificationService had 3 overloaded SendNotification methods; ClaimsProcessing used overriding — BaseClaim had virtual ProcessClaim(), SpecialClaim overrode it — no if-else chain, zero existing code change when adding new claim type. Trade-off: deep override chains cause tight coupling — I keep it to 2 levels max and use sealed when further overriding must be prevented.
-
-🟢 Real Project Usage
-
-In our Mobile Device Protection Platform:
-
-For Overloading — in \`NotificationService\`, 3 versions for different scenarios:
-
-\`\`\`csharp
-public void SendNotification(string email) { }
-public void SendNotification(string email, string subject) { }
-public void SendNotification(string email, string subject, List<string> attachments) { }
-\`\`\`
-
-For Overriding — in \`ClaimsProcessing\`, BaseClaim had virtual ProcessClaim(). SpecialClaim overrode it — no if-else needed:
-
-\`\`\`csharp
-public class BaseClaim
-{
-    public virtual void ProcessClaim() { /* Default */ }
-}
-
-public class SpecialClaim : BaseClaim
-{
-    public override void ProcessClaim() { /* Custom logic */ }
-}
-\`\`\`
-
-🔴 Interview Point / Must Remember
-
-| | Overloading | Overriding |
-|--|------------|------------|
-| Where | Same class | Parent → Child |
-| Parameters | Different | Same |
-| Resolved At | Compile-time | Runtime |
-| Keyword | None | virtual + override |
-
-• Without virtual keyword, C# uses base version even if child redefines the method
-• Use sealed to prevent further overriding down the chain
-
-🔵 Definition / Main Concept
-
-Method Overloading is when multiple methods share the same name but have different parameters within the same class. Method Overriding is when a child class provides its own implementation of a method already defined in the parent class.
-
-🟠 Advantages / Benefits
-
-• Overloading: API stays clean — one method name, flexible inputs
-• Overriding: Eliminates if-else type-checking chains
-• Adding a new claim type = new subclass only, zero existing code change
-• Overriding enables runtime polymorphism — same call, different behavior per object
-
-✅ Best Practice
-
-\`\`\`csharp
-// Prevent further overriding with sealed
-public sealed class FinalClaim : BaseClaim
-{
-    public override void ProcessClaim() { /* Final */ }
-}
-\`\`\`` },
-
-      // Example 3: Architecture — CQRS
-      { role: 'user', content: 'What is CQRS?' },
-      {
-        role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
-
-CQRS separates read and write operations into different models — commands handle writes with full validation, queries handle reads with lightweight optimized models. In my project, our policy dashboard was taking 8 seconds — after CQRS with MediatR commands and Dapper read models, it dropped to 500ms. Trade-off: adds complexity — two models to maintain — so I only use it when read and write workloads have significantly different performance needs.
-
-🟢 Real Project Usage
-
-In our Insurance Platform, policy dashboard joined 8-10 tables — taking 8 seconds. Write side had heavy business validation. I split it:
-
-\`\`\`csharp
-// Command — write side with full validation
-public class CreatePolicyCommand : IRequest<int>
-{
-    public string PolicyNumber { get; set; }
-    public decimal Premium { get; set; }
-}
-
-// Query — read side, lightweight Dapper model
-public class GetPolicyDashboardQuery : IRequest<PolicyDashboardDto> { }
-\`\`\`
-
-Commands → MediatR + EF Core. Queries → Dapper + optimized SQL views. Dashboard: 8s → 500ms (93% faster).
-
-🔴 Interview Point / Must Remember
-
-• CQRS ≠ Event Sourcing — they're complementary, not the same
-• Commands return void or Id only — never return full data
-• Queries are read-only — never modify state
-• Use MediatR in .NET to implement clean CQRS handlers
-• For simple CRUD — CQRS is overkill
-
-🔵 Definition / Main Concept
-
-CQRS stands for Command Query Responsibility Segregation — it separates read operations (Queries) from write operations (Commands) into completely different models with dedicated, optimized pipelines.
-
-🟠 Advantages / Benefits
-
-• Read performance improved 93% — 8s → 500ms
-• Write side has clean domain validation — no read concerns
-• Read models cached independently
-• Each side scales separately based on load
-
-✅ Best Practice
-
-• Use CQRS only when read/write complexity justifies it
-• Simple CRUD apps → stick with standard repository pattern` },
-
-      // Example 4: SQL/Performance
-      { role: 'user', content: 'How did you optimize SQL queries in your project?' },
-      {
-        role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
-
-I optimize SQL by first checking the execution plan to identify table scans, then adding targeted indexes and rewriting queries. In my project, a claims report joining 6 tables was taking 12 seconds — I added a composite index on ClaimDate and PolicyId, brought it to 800ms. Also eliminated N+1 firing 300 DB calls per request — replaced with a single JOIN. Trade-off: over-indexing slows inserts and updates, so I index based on actual query patterns, not preemptively.
-
-🟢 Real Project Usage
-
-Claims report — 6 table joins, 2M rows, 12 seconds. Fixed with:
-
-\`\`\`sql
--- Before: Full table scan — 12 seconds
-SELECT c.*, p.PolicyNumber
-FROM Claims c
-JOIN Policies p ON c.PolicyId = p.Id
-WHERE c.ClaimDate BETWEEN @From AND @To
-
--- Added composite index
-CREATE NONCLUSTERED INDEX IX_Claims_Date_Policy
-ON Claims (ClaimDate, PolicyId)
-INCLUDE (Status, Amount)
-
--- After: Index seek — 800ms
-\`\`\`
-
-Also replaced N+1 (300 calls) → single JOIN. Result: 12s → 800ms, 93% improvement.
-
-🔴 Interview Point / Must Remember
-
-• Always check Execution Plan first — "Clustered Index Scan" = problem, "Index Seek" = good
-• Composite index column order matters — most selective column first
-• SELECT * is an anti-pattern — always select only needed columns
-• Avoid functions on indexed columns in WHERE — disables index usage
-• N+1 = loading related data in a loop — fix with JOIN or Include()
-
-🔵 Definition / Main Concept
-
-SQL query optimization means reducing execution time and resource consumption by improving query logic, indexing strategy, and eliminating wasteful operations like SELECT * and N+1 patterns.
-
-🟠 Advantages / Benefits
-
-• 93% query time reduction — 12s → 800ms
-• DB CPU usage reduced 60% during peak hours
-• N+1 eliminated — 300 calls → 1 per request
-• Timed-out reports now load under 1 second
-
-✅ Best Practice
-
-\`\`\`sql
--- ❌ Bad — disables index
-WHERE YEAR(ClaimDate) = 2024
-
--- ✅ Good — uses index
-WHERE ClaimDate BETWEEN '2024-01-01' AND '2024-12-31'
-\`\`\`` }
+• Use constructor injection over property/method injection
+• Register as Scoped for request-based services, Singleton for stateless utilities` }
     );
   }
 
@@ -1486,7 +1336,7 @@ async function callGroq(thinkingEl) {
     body: JSON.stringify({
       model: groqModel,
       messages: buildMessages(),
-      max_tokens: 600, temperature: 0.6, stream: true
+      max_tokens: 1200, temperature: 0.6, stream: true
     })
   });
 
@@ -1517,7 +1367,7 @@ async function callGemini(thinkingEl) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemMsg ? systemMsg.content : SYSTEM_PROMPT }] },
         contents,
-        generationConfig: { temperature: 0.6, maxOutputTokens: 600 }
+        generationConfig: { temperature: 0.6, maxOutputTokens: 1200 }
       })
     }
   );
@@ -1556,7 +1406,7 @@ async function callOpenAI(thinkingEl) {
     body: JSON.stringify({
       model: openaiModel,
       messages: buildMessages(),
-      max_tokens: 600, temperature: 0.6, stream: true
+      max_tokens: 1200, temperature: 0.6, stream: true
     })
   });
 
