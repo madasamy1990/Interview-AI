@@ -436,7 +436,9 @@ function getThemeName(theme) {
     'light': '☀️ Light',
     'ocean': '🌊 Ocean',
     'purple': '🔮 Purple',
-    'forest': '🌿 Forest'
+    'forest': '🌿 Forest',
+    'apple-dark': '🍎 Apple Dark',
+    'apple-light': '🍏 Apple Light'
   };
   return names[theme] || theme;
 }
