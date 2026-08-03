@@ -527,9 +527,11 @@ document.addEventListener('keydown', (e) => {
   // Ctrl+C: Copy last answer (when not in text input)
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && !isTextInput) {
     e.preventDefault();
-    const copyBtn = document.querySelector('.copy-btn');
-    if (copyBtn) {
-      copyCard(copyBtn);
+    // FIX: Get LAST copy button (latest answer), not first (oldest)
+    const allCopyBtns = document.querySelectorAll('.copy-btn');
+    const lastCopyBtn = allCopyBtns[allCopyBtns.length - 1];
+    if (lastCopyBtn) {
+      copyCard(lastCopyBtn);
       return;
     }
   }
@@ -754,15 +756,29 @@ function startLiveSpeechRecognition() {
     updateLiveTranscriptDisplay();
   };
 
+  let _speechErrorTime = 0; // Track last error to prevent crash loop
+
   speechRecognition.onerror = (event) => {
     console.warn('SpeechRecognition error:', event.error);
-    // If it's a "no-speech" error, just keep going
     if (event.error === 'no-speech' || event.error === 'aborted') return;
+    // Mark error time for cooldown
+    _speechErrorTime = Date.now();
   };
 
   speechRecognition.onend = () => {
     // Auto-restart if still listening (recognition can stop unexpectedly)
     if (isListening && speechRecognition) {
+      // FIX: Cooldown — don't restart within 1.5s of error (prevents infinite loop)
+      const timeSinceError = Date.now() - _speechErrorTime;
+      if (timeSinceError < 1500) {
+        console.warn('Speech restart cooldown — waiting 2s after error');
+        setTimeout(() => {
+          if (isListening && speechRecognition) {
+            try { speechRecognition.start(); } catch (e) { console.warn('Restart failed:', e); }
+          }
+        }, 2000);
+        return;
+      }
       try {
         speechRecognition.start();
       } catch (e) {
@@ -2221,7 +2237,9 @@ async function populateScreenSources() {
 function drawVisualizer(analyserNode) {
   if (!analyserNode || !visCtx) return;
   const bufferLength = analyserNode.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
+  const dataArray = new Uint8Array(bufferLength); // FIX: Created once, reused every frame
+  // FIX: Cache accent color ONCE — not 60x/sec inside loop!
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#8b5cf6';
   function draw() {
     if (!isListening && !isSystemListening) {
       visCtx.clearRect(0, 0, audioVisualizer.width, audioVisualizer.height);
@@ -2232,9 +2250,9 @@ function drawVisualizer(analyserNode) {
     visCtx.clearRect(0, 0, audioVisualizer.width, audioVisualizer.height);
     const barWidth = (audioVisualizer.width / bufferLength) * 2.5;
     let x = 0;
+    visCtx.fillStyle = accentColor; // FIX: Use cached color — zero DOM reads per frame
     for (let i = 0; i < bufferLength; i++) {
       const barHeight = (dataArray[i] / 255) * audioVisualizer.height;
-      visCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#8b5cf6';
       visCtx.fillRect(x, audioVisualizer.height - barHeight, barWidth - 1, barHeight);
       x += barWidth;
     }
