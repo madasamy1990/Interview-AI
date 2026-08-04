@@ -92,17 +92,16 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // Save window bounds on move/resize
-  mainWindow.on('move', () => {
+  // Save window bounds on move/resize (debounced to prevent stutter)
+  let boundsTimer = null;
+  function debounceSaveBounds() {
     if (!mainWindow.isMinimized() && !mainWindow.isMaximized()) {
-      saveWindowBounds(mainWindow.getBounds());
+      clearTimeout(boundsTimer);
+      boundsTimer = setTimeout(() => saveWindowBounds(mainWindow.getBounds()), 500);
     }
-  });
-  mainWindow.on('resize', () => {
-    if (!mainWindow.isMinimized() && !mainWindow.isMaximized()) {
-      saveWindowBounds(mainWindow.getBounds());
-    }
-  });
+  }
+  mainWindow.on('move', debounceSaveBounds);
+  mainWindow.on('resize', debounceSaveBounds);
 }
 
 app.whenReady().then(() => {
