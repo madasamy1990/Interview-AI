@@ -127,6 +127,7 @@ let speechRecognition = null;
 let liveTranscript = '';       // accumulated final results
 let interimTranscript = '';    // current interim result
 let conversationHistory = [];
+let isTeleprompterMode = false;
 let isOffline = false;
 let retryQueue = [];
 let retryCount = 0;
@@ -367,6 +368,140 @@ function toggleGlassMode() {
 
 glassBtn.addEventListener('click', toggleGlassMode);
 
+// --- Teleprompter Mode ---
+let teleprompterBar = null;
+
+function createTeleprompterBar() {
+  if (teleprompterBar) return;
+  teleprompterBar = document.createElement('div');
+  teleprompterBar.id = 'teleprompter-bar';
+
+  // SVG icons as inline strings — fill-based for reliable rendering
+  const svgMic    = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V20H9v2h6v-2h-2v-2.08A7 7 0 0 0 19 11h-2z"/></svg>`;
+  const svgCam    = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z"/></svg>`;
+  const svgTrash  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+  const svgUp     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>`;
+  const svgDown   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
+  const svgClose  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
+
+  teleprompterBar.innerHTML = `
+    <div class="tp-left">
+      <button class="tp-btn tp-mic-btn" id="tp-mic" title="Mic (Space)">${svgMic}<span>Mic</span></button>
+      <button class="tp-btn" id="tp-screenshot" title="Screenshot">${svgCam}<span>Shot</span></button>
+      <button class="tp-btn" id="tp-clear" title="Clear">${svgTrash}<span>Clear</span></button>
+      <span class="tp-divider"></span>
+      <button class="tp-btn tp-font-btn" id="tp-font-down" title="Font Smaller">A−</button>
+      <button class="tp-btn tp-font-btn" id="tp-font-up" title="Font Larger">A+</button>
+      <span class="tp-divider"></span>
+      <button class="tp-btn" id="tp-up" title="Scroll Up">${svgUp}</button>
+      <button class="tp-btn" id="tp-down" title="Scroll Down">${svgDown}</button>
+    </div>
+    <div class="tp-transcript" id="tp-transcript-display">🎤 Space = Mic&nbsp;&nbsp;|&nbsp;&nbsp;↑↓ = Scroll&nbsp;&nbsp;|&nbsp;&nbsp;ESC = Exit</div>
+    <div class="tp-right">
+      <button class="tp-btn tp-exit-btn" id="tp-exit" title="Exit Teleprompter (ESC)">${svgClose}<span>Exit</span></button>
+    </div>
+  `;
+
+  document.body.appendChild(teleprompterBar);
+
+  // Init mic state
+  const tpMicBtn = document.getElementById('tp-mic');
+  if (tpMicBtn) {
+    tpMicBtn.classList.toggle('tp-mic-active', isListening);
+    tpMicBtn.addEventListener('click', () => startMic());
+  }
+
+  // Screenshot
+  document.getElementById('tp-screenshot').addEventListener('click', async () => {
+    try {
+      let imgData;
+      if (window.electronAPI) {
+        const sources = await window.electronAPI.getScreenSources();
+        if (sources && sources.length > 0) imgData = sources[0].thumbnail;
+      }
+      if (imgData) await analyzeScreenshot(imgData);
+      else showToast('Could not capture screen');
+    } catch (err) { showToast('Screenshot failed'); }
+  });
+
+  // Clear
+  document.getElementById('tp-clear').addEventListener('click', () => {
+    chatArea.innerHTML = '';
+    conversationHistory = [];
+    localStorage.removeItem('angel_chat_history');
+    showToast('Chat cleared!');
+  });
+
+  // Scroll
+  document.getElementById('tp-up').addEventListener('click', () => scrollTeleprompter('up'));
+  document.getElementById('tp-down').addEventListener('click', () => scrollTeleprompter('down'));
+
+  // Exit
+  document.getElementById('tp-exit').addEventListener('click', () => toggleTeleprompter());
+
+  // Font size
+  let tpFontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tp-font-size')) || 16;
+  document.getElementById('tp-font-up').addEventListener('click', () => {
+    tpFontSize = Math.min(tpFontSize + 2, 28);
+    document.documentElement.style.setProperty('--tp-font-size', tpFontSize + 'px');
+    showToast('Font ' + tpFontSize + 'px');
+  });
+  document.getElementById('tp-font-down').addEventListener('click', () => {
+    tpFontSize = Math.max(tpFontSize - 2, 10);
+    document.documentElement.style.setProperty('--tp-font-size', tpFontSize + 'px');
+    showToast('Font: ' + tpFontSize + 'px');
+  });
+}
+
+function removeTeleprompterBar() {
+  if (teleprompterBar) { teleprompterBar.remove(); teleprompterBar = null; }
+}
+
+// Update the live transcript area inside the teleprompter bar
+function updateTpTranscript(text) {
+  const el = document.getElementById('tp-transcript-display');
+  if (!el) return;
+  if (text) {
+    el.innerHTML = '<span class="tp-tr-live">' + text + '</span>';
+  } else {
+    el.innerHTML = '🎤 Space = Mic &nbsp;|&nbsp; ↑↓ = Scroll &nbsp;|&nbsp; ESC = Exit';
+  }
+}
+
+function scrollTeleprompter(direction) {
+  const chatArea = document.getElementById('chatArea');
+  if (!chatArea) return;
+  chatArea.scrollBy({ top: direction === 'up' ? -80 : 80, behavior: 'smooth' });
+}
+
+function toggleTeleprompter() {
+  isTeleprompterMode = !isTeleprompterMode;
+  document.body.classList.toggle('teleprompter-mode', isTeleprompterMode);
+
+  if (window.electronAPI && window.electronAPI.toggleTeleprompter) {
+    window.electronAPI.toggleTeleprompter(isTeleprompterMode);
+  }
+
+  if (isTeleprompterMode) {
+    createTeleprompterBar();
+    // Show ONLY the latest answer — hide all older rows
+    const allRows = chatArea.querySelectorAll('.message-row');
+    allRows.forEach((r, i) => {
+      if (i < allRows.length - 1) r.classList.add('tp-hidden');
+    });
+    const lastRow = allRows[allRows.length - 1];
+    if (lastRow) lastRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Teleprompter ON | Space=Mic | Arrows=Scroll | ESC=Exit');
+  } else {
+    removeTeleprompterBar();
+    // Restore all hidden rows
+    chatArea.querySelectorAll('.tp-hidden').forEach(r => r.classList.remove('tp-hidden'));
+    showToast('Teleprompter OFF');
+  }
+}
+window.toggleTeleprompter = toggleTeleprompter;
+
+
 // ─── Provider UI ───
 function toggleProviderUI(p) {
   groqSection.style.display = p === 'groq' ? 'block' : 'none';
@@ -512,6 +647,12 @@ document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName?.toLowerCase();
   const isTextInput = tag === 'textarea' || (tag === 'input' && document.activeElement.id === 'manualInput');
 
+  // Teleprompter: arrow keys scroll, ESC exits
+  if (isTeleprompterMode && !isTextInput) {
+    if (e.key === 'ArrowUp') { e.preventDefault(); scrollTeleprompter('up'); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); scrollTeleprompter('down'); return; }
+  }
+
   // T: Open text input panel
   if (e.key.toLowerCase() === 't' && !isTextInput && settingsPanel.style.display === 'none' && helpPanel.style.display === 'none') {
     e.preventDefault();
@@ -546,6 +687,8 @@ document.addEventListener('keydown', (e) => {
 
   // Escape: Close all panels
   if (e.key === 'Escape') {
+    // Exit teleprompter first
+    if (isTeleprompterMode) { toggleTeleprompter(); return; }
     if (helpPanel.style.display !== 'none') {
       helpPanel.style.display = 'none';
       showToast('✕ Shortcuts closed');
@@ -589,6 +732,13 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  
+  // Ctrl+P: Toggle teleprompter mode
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+    e.preventDefault();
+    toggleTeleprompter();
+    return;
+  }
   // Ctrl+M: Toggle mic
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
     e.preventDefault();
@@ -603,9 +753,22 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Spacebar = Toggle-to-Talk (only if not in text input)
+  // Spacebar = Toggle-to-Talk (only if not in text input or button)
   // Press once to start listening, press again to stop and generate answer
-  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button') return;
+
+  // In teleprompter mode, skip panel checks — spacebar always works
+  if (isTeleprompterMode && e.code === 'Space') {
+    e.preventDefault();
+    startMic();
+    // Update teleprompter mic button visual
+    setTimeout(() => {
+      const tpMic = document.getElementById('tp-mic');
+      if (tpMic) tpMic.classList.toggle('tp-mic-active', isListening);
+    }, 100);
+    return;
+  }
+
   if (settingsPanel.style.display !== 'none') return;
   if (helpPanel.style.display !== 'none') return;
   if (textPanel.style.display !== 'none') return;
@@ -676,6 +839,14 @@ async function prewarmMicrophone() {
       : { audio: true };
     prewarmedStream = await navigator.mediaDevices.getUserMedia(constraints);
     console.log('🎤 Microphone pre-warmed and ready');
+    // Bug #3 Fix: auto-release after 30s to clear Windows mic privacy icon
+    setTimeout(() => {
+      if (prewarmedStream && !isListening) {
+        prewarmedStream.getTracks().forEach(t => t.stop());
+        prewarmedStream = null;
+        console.log('🎤 Pre-warm stream released (30s idle)');
+      }
+    }, 30000);
   } catch (e) {
     console.warn('Mic pre-warm failed (will retry on first use):', e.message);
     prewarmedStream = null;
@@ -739,8 +910,13 @@ async function startRecording() {
     mediaRecorder.start(250); // collect chunks every 250ms
     isListening = true;
     micBtn.classList.add('listening');
+    const tpMic = document.getElementById('tp-mic');
+    if (tpMic) tpMic.classList.add('tp-mic-active');
+    document.body.classList.add('recording');
     liveTranscriptBar.style.display = 'flex';
     liveTranscriptTxt.textContent = '🎙️ Listening...';
+    // Show mic active state in teleprompter bar immediately
+    if (isTeleprompterMode) updateTpTranscript('🔴 Listening...');
     setStatusBar('🔴 Listening — press Space again to stop & get answer');
 
     // ── Start real-time Speech Recognition ──
@@ -847,6 +1023,8 @@ function updateLiveTranscriptDisplay() {
 
   if (!finalText && !interimText) {
     liveTranscriptTxt.innerHTML = '🎙️ Listening...';
+    // Still update teleprompter bar
+    if (isTeleprompterMode) updateTpTranscript('🔴 Listening...');
     return;
   }
 
@@ -859,6 +1037,8 @@ function updateLiveTranscriptDisplay() {
     display += `<span class="transcript-interim">${escapeHtml(interimText)}</span>`;
   }
   liveTranscriptTxt.innerHTML = display;
+  // Mirror to teleprompter bar — show what user is saying
+  if (isTeleprompterMode) updateTpTranscript((finalText + ' ' + interimText).trim());
 
   // Auto-scroll the transcript bar to show latest text
   liveTranscriptTxt.scrollLeft = liveTranscriptTxt.scrollWidth;
@@ -884,6 +1064,9 @@ function stopAndTranscribe() {
   }
   isListening = false;
   micBtn.classList.remove('listening');
+  const tpMic = document.getElementById('tp-mic');
+  if (tpMic) tpMic.classList.remove('tp-mic-active');
+  document.body.classList.remove('recording');
 
   // Show final captured transcript while processing
   const capturedText = (liveTranscript + ' ' + interimTranscript).trim();
@@ -892,6 +1075,8 @@ function stopAndTranscribe() {
   } else {
     liveTranscriptTxt.textContent = '⏳ Transcribing...';
   }
+  // Update teleprompter bar transcript: show processing state
+  if (isTeleprompterMode) updateTpTranscript(capturedText ? '⏳ Processing: "' + capturedText + '"' : '⏳ Processing...');
   setStatusBar('⏳ Processing your question...');
 }
 
@@ -944,8 +1129,12 @@ async function transcribeAudio() {
       liveTranscriptBar.style.display = 'flex';
       liveTranscriptTxt.textContent = '✅ ' + transcript;
       setTimeout(() => { liveTranscriptBar.style.display = 'none'; }, 2000);
+      // Show question in teleprompter bar center — clears after 4s when answer arrives
+      if (isTeleprompterMode) updateTpTranscript('✅ ' + transcript);
       // Auto-submit!
       await askCrackit(transcript, { fromSpeech: true });
+      // Reset tp bar after answer done
+      if (isTeleprompterMode) updateTpTranscript('');
     } else {
       setStatusBar('Press Mic button to start');
       showError('No speech detected. Try speaking louder or closer to mic.');
@@ -1217,8 +1406,13 @@ function addAnswerCard(thinkingEl) {
         </div>
       </div>
     </div>`;
+
+  // In teleprompter mode: hide ALL previous rows, show only this new one
+  if (isTeleprompterMode) {
+    chatArea.querySelectorAll('.message-row').forEach(r => r.classList.add('tp-hidden'));
+  }
+
   chatArea.appendChild(row);
-  // Scroll to the TOP of this answer so user reads from beginning
   row.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return row;
 }
@@ -1417,10 +1611,23 @@ async function callGemini(thinkingEl) {
   const nonSystemMsgs = allMessages.filter(m => m.role !== 'system');
 
   // Convert OpenAI format → Gemini format
-  const contents = nonSystemMsgs.map(m => ({
+  // Bug #2 Fix: Gemini requires strictly alternating user/model turns
+  // Collapse consecutive same-role messages to prevent 400 errors
+  const rawContents = nonSystemMsgs.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }]
   }));
+  const contents = rawContents.reduce((acc, cur) => {
+    if (acc.length > 0 && acc[acc.length - 1].role === cur.role) {
+      // Merge consecutive same-role turns into one
+      acc[acc.length - 1].parts[0].text += '\n' + cur.parts[0].text;
+    } else {
+      acc.push(cur);
+    }
+    return acc;
+  }, []);
+  // Gemini must start with 'user'
+  if (contents.length > 0 && contents[0].role !== 'user') contents.shift();
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiKey}`,
@@ -1503,9 +1710,46 @@ async function streamOpenAIFormat(response, thinkingEl, tag) {
 }
 
 function updateCard(card, text) {
-  const html = renderMarkdown(text);
+  // B: In teleprompter — strip emoji section-title lines (waste of space)
+  let displayText = text;
+  if (isTeleprompterMode) {
+    displayText = text
+      .split('\n')
+      .filter(line => {
+        const t = line.trim();
+        if (!t) return true; // keep blank lines
+        // Strip known section title lines (with or without emoji prefix)
+        const sectionKeywords = [
+          'Simple Interview Answer',
+          'Real Project Usage',
+          'Interview Point',
+          'Must Remember',
+          'Definition / Main Concept',
+          'Advantages',
+          'Benefits',
+          'Best Practice',
+          'Trade-off',
+          'Key Point',
+        ];
+        // Match: optional #s + optional emoji + keyword
+        const stripped = t.replace(/^#+\s*/, '').replace(/^\p{Emoji}\s*/u, '').trim();
+        if (sectionKeywords.some(k => stripped.toLowerCase().startsWith(k.toLowerCase()))) return false;
+        return true;
+      })
+      .join('\n');
+  }
+
+  const html = renderMarkdown(displayText);
   // Preserve controls (copy + TTS buttons)
   card.innerHTML = `<div class="answer-controls"><button class="copy-btn" onclick="copyCard(this)">📋 Copy</button></div>${html}`;
+  // Bug #1 Fix: throttle scrollIntoView with RAF to prevent streaming jitter
+  if (isTeleprompterMode && !card._scrollPending) {
+    card._scrollPending = true;
+    requestAnimationFrame(() => {
+      card.parentElement?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      card._scrollPending = false;
+    });
+  }
 }
 
 // ─── Markdown Renderer ───
@@ -1729,7 +1973,17 @@ async function startSystemListen() {
 
   } catch (e) {
     console.error('System audio error:', e);
-    showError('System audio capture failed: ' + e.message + '. Make sure audio is playing.');
+    // Bug #5 Fix: Detect Windows loopback failure specifically
+    const isLoopbackError = e.name === 'NotAllowedError' || e.name === 'NotFoundError' ||
+      (e.message && e.message.toLowerCase().includes('audio'));
+    if (isLoopbackError) {
+      showError(
+        '⚠️ System audio capture needs a virtual audio cable on Windows.\n' +
+        'Install VB-Audio Cable (free) OR use 🎤 Mic button to record your voice instead.'
+      );
+    } else {
+      showError('System audio capture failed: ' + e.message);
+    }
     stopSystemListen();
   }
 }

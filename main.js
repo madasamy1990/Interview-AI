@@ -9,6 +9,7 @@ app.commandLine.appendSwitch('no-sandbox');
 let mainWindow;
 let isHidden = false;
 let isStealthMode = false;
+let savedNormalBounds = null;
 const fs = require('fs');
 
 // Load saved window bounds
@@ -246,5 +247,26 @@ ipcMain.handle('get-audio-devices', async () => {
     return devices;
   } catch (e) {
     return [];
+  }
+});
+
+// IPC: Toggle Teleprompter Mode
+ipcMain.handle('toggle-teleprompter', (_, enable) => {
+  if (!mainWindow) return;
+  const { width } = screen.getPrimaryDisplay().workAreaSize;
+
+  if (enable) {
+    savedNormalBounds = mainWindow.getBounds();
+    mainWindow.setMinimumSize(400, 60);
+    mainWindow.setMaximumSize(width + 100, 300);
+    mainWindow.setResizable(true);
+    mainWindow.setBounds({ x: 0, y: 0, width: width, height: 100 });
+  } else {
+    mainWindow.setMinimumSize(420, 600);
+    mainWindow.setMaximumSize(600, 900);
+    mainWindow.setResizable(true);
+    const b = savedNormalBounds || { x: width - 520, y: 40, width: 500, height: 750 };
+    mainWindow.setBounds(b);
+    savedNormalBounds = null;
   }
 });

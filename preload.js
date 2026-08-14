@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+﻿const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   toggleHide: () => ipcRenderer.invoke('toggle-hide'),
@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleStealth: () => ipcRenderer.invoke('toggle-stealth'),
   onStealthChanged: (callback) => ipcRenderer.on('stealth-changed', (_, isStealth) => callback(isStealth)),
   onRemoteScroll: (callback) => ipcRenderer.on('remote-scroll', (_, direction) => callback(direction)),
+  toggleTeleprompter: (enable) => ipcRenderer.invoke('toggle-teleprompter', enable),
 });
