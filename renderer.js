@@ -360,11 +360,11 @@ function init() {
   if (skipLoginBtn) skipLoginBtn.addEventListener('click', handleSkipLogin);
   if (signupLink) signupLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.open('https://website-pied-ten-80.vercel.app/signup', '_blank');
+    window.open('https://crackit-ai.vercel.app/signup', '_blank');
   });
   if (loginForgotLink) loginForgotLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.open('https://website-pied-ten-80.vercel.app/forgot-password', '_blank');
+    window.open('https://crackit-ai.vercel.app/forgot-password', '_blank');
   });
 
   // Enter key on password field
