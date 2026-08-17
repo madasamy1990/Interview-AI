@@ -109,6 +109,13 @@ let SYSTEM_PROMPT = localStorage.getItem('angel_custom_prompt') || DEFAULT_PROMP
 
 // ─── State ───
 let provider = localStorage.getItem('angel_provider') || 'groq';
+
+// ═══ SaaS Mode Variables ═══
+let saasToken = localStorage.getItem('crackit_token') || null;
+let saasUser = JSON.parse(localStorage.getItem('crackit_user') || 'null');
+let saasCredits = parseInt(localStorage.getItem('crackit_credits') || '0');
+let isSaasMode = !!saasToken;
+const BACKEND_URL = 'http://localhost:3001';
 let groqKey = localStorage.getItem('angel_groq_key') || '';
 let groqModel = localStorage.getItem('angel_groq_model') || 'llama-3.3-70b-versatile';
 let geminiKey = localStorage.getItem('angel_gemini_key') || '';
@@ -235,18 +242,18 @@ const performCropOcrBtn = document.getElementById('performCropOcrBtn');
 
 // ─── Init ───
 function init() {
-  providerSelect.value = provider;
-  groqKeyInput.value = groqKey ? '••••••••••••••••' : '';
-  groqModelSelect.value = groqModel;
-  geminiKeyInput.value = geminiKey ? '••••••••••••••••' : '';
-  geminiModelSelect.value = geminiModel;
-  apiKeyInput.value = apiKey ? '••••••••••••••••' : '';
-  modelSelect.value = openaiModel;
+  if (providerSelect) providerSelect.value = provider;
+  if (groqKeyInput) groqKeyInput.value = groqKey ? '••••••••••••••••' : '';
+  if (groqModelSelect) groqModelSelect.value = groqModel;
+  if (geminiKeyInput) geminiKeyInput.value = geminiKey ? '••••••••••••••••' : '';
+  if (geminiModelSelect) geminiModelSelect.value = geminiModel;
+  if (apiKeyInput) apiKeyInput.value = apiKey ? '••••••••••••••••' : '';
+  if (modelSelect) modelSelect.value = openaiModel;
 
-  ollamaEndpointInput.value = ollamaEndpoint;
-  ollamaModelSelect.value = ollamaModel;
-  speechVocabularyInput.value = speechVocabulary;
-  snippetModeToggle.checked = snippetMode;
+  if (ollamaEndpointInput) ollamaEndpointInput.value = ollamaEndpoint;
+  if (ollamaModelSelect) ollamaModelSelect.value = ollamaModel;
+  if (speechVocabularyInput) speechVocabularyInput.value = speechVocabulary;
+  if (snippetModeToggle) snippetModeToggle.checked = snippetMode;
 
   const savedOpacity = localStorage.getItem('angel_opacity') || '95';
   opacitySlider.value = savedOpacity;
@@ -331,6 +338,228 @@ function init() {
       }
     });
   }
+
+  // Window controls (Main titlebar + Login screen)
+  const minimizeBtn = document.getElementById('minimizeBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  const loginMinimizeBtn = document.getElementById('loginMinimizeBtn');
+  const loginCloseBtn = document.getElementById('loginCloseBtn');
+
+  if (minimizeBtn) minimizeBtn.addEventListener('click', () => window.electronAPI?.minimizeWindow());
+  if (closeBtn) closeBtn.addEventListener('click', () => window.electronAPI?.closeWindow());
+  if (loginMinimizeBtn) loginMinimizeBtn.addEventListener('click', () => window.electronAPI?.minimizeWindow());
+  if (loginCloseBtn) loginCloseBtn.addEventListener('click', () => window.electronAPI?.closeWindow());
+
+  // Login screen event listeners
+  const loginBtn = document.getElementById('loginBtn');
+  const skipLoginBtn = document.getElementById('skipLoginBtn');
+  const signupLink = document.getElementById('signupLink');
+  const loginForgotLink = document.getElementById('loginForgotLink');
+
+  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  if (skipLoginBtn) skipLoginBtn.addEventListener('click', handleSkipLogin);
+  if (signupLink) signupLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open('http://localhost:3000/signup', '_blank');
+  });
+  if (loginForgotLink) loginForgotLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open('http://localhost:3000/forgot-password', '_blank');
+  });
+
+  // Enter key on password field
+  const loginPasswordField = document.getElementById('loginPassword');
+  if (loginPasswordField) loginPasswordField.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  // Auto-login if token exists
+  if (saasToken) {
+    document.getElementById('loginScreen').style.display = 'none';
+    fetchCredits();
+    updateCreditsUI();
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+}
+
+// ═══ SaaS Authentication ═══
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  const loginBtn = document.getElementById('loginBtn');
+  
+  if (!email || !password) {
+    errorEl.textContent = 'Please enter email and password';
+    errorEl.style.display = 'block';
+    return;
+  }
+  
+  loginBtn.textContent = 'Logging in...';
+  loginBtn.disabled = true;
+  errorEl.style.display = 'none';
+  
+  try {
+    const res = await fetch(`${BACKEND_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    
+    if (!res.ok) throw new Error(data.message || data.error || 'Login failed');
+    
+    // Store session
+    saasToken = data.session.access_token;
+    saasUser = data.user;
+    isSaasMode = true;
+    localStorage.setItem('crackit_token', saasToken);
+    localStorage.setItem('crackit_user', JSON.stringify(saasUser));
+    
+    // Fetch credits
+    await fetchCredits();
+    
+    // Hide login, show app
+    document.getElementById('loginScreen').style.display = 'none';
+    updateCreditsUI();
+    
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    loginBtn.textContent = 'Login';
+    loginBtn.disabled = false;
+  }
+}
+
+async function fetchCredits() {
+  if (!saasToken) return;
+  try {
+    const res = await fetch(`${BACKEND_URL}/credits`, {
+      headers: { 'Authorization': `Bearer ${saasToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      saasCredits = data.credits_remaining || 0;
+      localStorage.setItem('crackit_credits', saasCredits.toString());
+      updateCreditsUI();
+    }
+  } catch (e) {
+    console.warn('Failed to fetch credits:', e);
+  }
+}
+
+function updateCreditsUI() {
+  const badge = document.getElementById('creditsBadge');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const emailBadge = document.getElementById('userEmailBadge');
+
+  if (isSaasMode && badge) {
+    badge.style.display = 'inline';
+    badge.textContent = `💎 ${saasCredits}`;
+    if (saasCredits < 5) badge.style.background = '#ef4444';
+    else badge.style.background = '#7c3aed';
+  } else if (badge) {
+    badge.style.display = 'none';
+  }
+
+  if (logoutBtn) logoutBtn.style.display = isSaasMode ? 'inline-block' : 'none';
+
+  if (emailBadge) {
+    if (isSaasMode && saasUser && saasUser.email) {
+      emailBadge.style.display = 'inline-block';
+      emailBadge.textContent = saasUser.email;
+      emailBadge.title = `Logged in as: ${saasUser.email}`;
+    } else {
+      emailBadge.style.display = 'none';
+    }
+  }
+}
+
+function handleLogout() {
+  saasToken = null;
+  saasUser = null;
+  saasCredits = 0;
+  isSaasMode = false;
+  localStorage.removeItem('crackit_token');
+  localStorage.removeItem('crackit_user');
+  localStorage.removeItem('crackit_credits');
+  document.getElementById('loginScreen').style.display = 'flex';
+  updateCreditsUI();
+}
+window.handleLogout = handleLogout;
+
+function handleSkipLogin() {
+  document.getElementById('loginScreen').style.display = 'none';
+  isSaasMode = false;
+}
+
+// ═══ SaaS Backend AI Call ═══
+async function callSaasBackend(thinkingEl, type = 'text') {
+  const card = addAnswerCard(thinkingEl);
+  let full = '';
+  
+  const res = await fetch(`${BACKEND_URL}/ask`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${saasToken}`
+    },
+    body: JSON.stringify({
+      question: conversationHistory[conversationHistory.length - 1].content,
+      type: type
+    })
+  });
+  
+  if (res.status === 402) {
+    const err = await res.json();
+    updateCard(card, `⚠️ **Insufficient Credits!**\n\nYou have ${err.credits_remaining} credits remaining.\nThis query needs ${err.credits_needed} credits.\n\n[Upgrade at crackit.app/pricing](https://crackit.app/pricing)`);
+    return full;
+  }
+  
+  if (res.status === 401) {
+    // Token expired — force re-login
+    updateCard(card, `⚠️ **Session Expired!**\n\nPlease login again.`);
+    setTimeout(() => handleLogout(), 2000);
+    return full;
+  }
+  
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || err.message || 'Backend error');
+  }
+  
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const text = decoder.decode(value);
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.text) {
+            full += parsed.text;
+            updateCard(card, full);
+          }
+          if (parsed.credits_remaining !== undefined) {
+            saasCredits = parsed.credits_remaining;
+            localStorage.setItem('crackit_credits', saasCredits.toString());
+            updateCreditsUI();
+          }
+        } catch (e) {}
+      }
+    }
+  }
+  
+  return full;
 }
 
 // ─── Status Bar ───
@@ -504,12 +733,12 @@ window.toggleTeleprompter = toggleTeleprompter;
 
 // ─── Provider UI ───
 function toggleProviderUI(p) {
-  groqSection.style.display = p === 'groq' ? 'block' : 'none';
-  geminiSection.style.display = p === 'gemini' ? 'block' : 'none';
-  openaiSection.style.display = p === 'openai' ? 'block' : 'none';
-  ollamaSection.style.display = p === 'ollama' ? 'block' : 'none';
+  if (groqSection) groqSection.style.display = p === 'groq' ? 'block' : 'none';
+  if (geminiSection) geminiSection.style.display = p === 'gemini' ? 'block' : 'none';
+  if (openaiSection) openaiSection.style.display = p === 'openai' ? 'block' : 'none';
+  if (ollamaSection) ollamaSection.style.display = p === 'ollama' ? 'block' : 'none';
 }
-providerSelect.addEventListener('change', () => toggleProviderUI(providerSelect.value));
+if (providerSelect) providerSelect.addEventListener('change', () => toggleProviderUI(providerSelect.value));
 
 // ─── Settings open/close ───
 settingsBtn.addEventListener('click', () => { populateAudioDevices(); populateScreenSources(); settingsPanel.style.display = 'flex'; settingsPanel.style.flexDirection = 'column'; });
@@ -535,38 +764,30 @@ document.getElementById('openApiLink')?.addEventListener('click', (e) => {
 });
 
 saveSettingsBtn.addEventListener('click', () => {
-  provider = providerSelect.value;
-  localStorage.setItem('angel_provider', provider);
+  if (providerSelect) { provider = providerSelect.value; localStorage.setItem('angel_provider', provider); }
 
-  const nGroq = groqKeyInput.value.trim();
-  if (nGroq && !nGroq.startsWith('•')) { groqKey = nGroq; localStorage.setItem('angel_groq_key', groqKey); }
-  groqModel = groqModelSelect.value; localStorage.setItem('angel_groq_model', groqModel);
+  if (groqKeyInput) { const nGroq = groqKeyInput.value.trim();
+  if (nGroq && !nGroq.startsWith('•')) { groqKey = nGroq; localStorage.setItem('angel_groq_key', groqKey); } }
+  if (groqModelSelect) { groqModel = groqModelSelect.value; localStorage.setItem('angel_groq_model', groqModel); }
 
-  const nGemini = geminiKeyInput.value.trim();
-  if (nGemini && !nGemini.startsWith('•')) { geminiKey = nGemini; localStorage.setItem('angel_gemini_key', geminiKey); }
-  geminiModel = geminiModelSelect.value; localStorage.setItem('angel_gemini_model', geminiModel);
+  if (geminiKeyInput) { const nGemini = geminiKeyInput.value.trim();
+  if (nGemini && !nGemini.startsWith('•')) { geminiKey = nGemini; localStorage.setItem('angel_gemini_key', geminiKey); } }
+  if (geminiModelSelect) { geminiModel = geminiModelSelect.value; localStorage.setItem('angel_gemini_model', geminiModel); }
 
-  const nOAI = apiKeyInput.value.trim();
-  if (nOAI && !nOAI.startsWith('•')) { apiKey = nOAI; localStorage.setItem('angel_api_key', apiKey); }
-  openaiModel = modelSelect.value; localStorage.setItem('angel_model', openaiModel);
+  if (apiKeyInput) { const nOAI = apiKeyInput.value.trim();
+  if (nOAI && !nOAI.startsWith('•')) { apiKey = nOAI; localStorage.setItem('angel_api_key', apiKey); } }
+  if (modelSelect) { openaiModel = modelSelect.value; localStorage.setItem('angel_model', openaiModel); }
 
   // Ollama settings
-  ollamaEndpoint = ollamaEndpointInput.value.trim() || 'http://localhost:11434';
-  localStorage.setItem('angel_ollama_endpoint', ollamaEndpoint);
-  ollamaModel = ollamaModelSelect.value;
-  localStorage.setItem('angel_ollama_model', ollamaModel);
+  if (ollamaEndpointInput) { ollamaEndpoint = ollamaEndpointInput.value.trim() || 'http://localhost:11434'; localStorage.setItem('angel_ollama_endpoint', ollamaEndpoint); }
+  if (ollamaModelSelect) { ollamaModel = ollamaModelSelect.value; localStorage.setItem('angel_ollama_model', ollamaModel); }
 
   // Audio & capture settings
-  speechVocabulary = speechVocabularyInput.value.trim();
-  localStorage.setItem('angel_speech_vocabulary', speechVocabulary);
-  snippetMode = snippetModeToggle.checked;
-  localStorage.setItem('angel_snippet_mode', snippetMode);
-  selectedScreenId = screenSelect.value;
-  localStorage.setItem('angel_screen_id', selectedScreenId);
-  selectedMicId = micSelect.value;
-  localStorage.setItem('angel_mic_id', selectedMicId);
-  selectedSpeakerId = speakerSelect.value;
-  localStorage.setItem('angel_speaker_id', selectedSpeakerId);
+  if (speechVocabularyInput) { speechVocabulary = speechVocabularyInput.value.trim(); localStorage.setItem('angel_speech_vocabulary', speechVocabulary); }
+  if (snippetModeToggle) { snippetMode = snippetModeToggle.checked; localStorage.setItem('angel_snippet_mode', snippetMode); }
+  if (screenSelect) { selectedScreenId = screenSelect.value; localStorage.setItem('angel_screen_id', selectedScreenId); }
+  if (micSelect) { selectedMicId = micSelect.value; localStorage.setItem('angel_mic_id', selectedMicId); }
+  if (speakerSelect) { selectedSpeakerId = speakerSelect.value; localStorage.setItem('angel_speaker_id', selectedSpeakerId); }
 
   localStorage.setItem('angel_opacity', opacitySlider.value);
   localStorage.setItem('angel_font', fontSizeSelect.value);
@@ -1206,76 +1427,81 @@ async function analyzeScreenshot(imageDataUrl) {
       return;
     }
 
-    // Step 2: Send raw OCR to Groq — AI extracts the clean interview question
+    // Step 2: Extract clean question from raw screen OCR text
     liveTranscriptTxt.textContent = '🧠 Finding the question...';
 
-    const whisperKey = groqKey || apiKey;
-    if (!whisperKey) {
-      // No key — just pass raw text
-      liveTranscriptBar.style.display = 'none';
-      await askCrackit(rawText.replace(/\s+/g, ' ').trim().slice(0, 300));
-      return;
-    }
-
-    const apiUrl = groqKey
-      ? 'https://api.groq.com/openai/v1/chat/completions'
-      : 'https://api.openai.com/v1/chat/completions';
-
-    const fastModel = groqKey ? 'llama-3.1-8b-instant' : 'gpt-4o-mini';
-
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${whisperKey}`
-      },
-      body: JSON.stringify({
-        model: fastModel,
-        messages: [
-          {
-            role: 'system',
-            content: `You extract interview/coding questions from messy OCR text scraped from a computer screen.
-The OCR text contains garbage: taskbar text, file names, status bars, browser tabs, random symbols like ® © ° @ #, timestamps, window titles.
-
-Your job: Extract the COMPLETE question with ALL its parts.
-
-CRITICAL RULES:
-- Return the FULL question including ALL parts: the main question, examples, sample inputs/outputs, constraints, and instructions like "write a C# program" or "use only 1 loop"
-- Keep array examples intact: [2,5,6,9,6,7,3,7]
-- Keep code requirements: "write a program", "implement in C#", "use LINQ"
-- If question has multiple lines/parts, include ALL of them
-- Clean up OCR artifacts (broken words, random symbols) but keep the question content complete
-- Do NOT summarize or shorten — return the exact full question as written
-- If truly no question found, return exactly: NO_QUESTION_FOUND
-- Return ONLY the extracted question text — no explanations, no labels, no "The question is:"`
+    let extracted = '';
+    if (isSaasMode) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/ask/extract-ocr`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${saasToken}`
           },
-          {
-            role: 'user',
-            content: `Extract the COMPLETE interview/coding question from this OCR text. Include ALL parts — examples, constraints, and instructions:\n\n${rawText.slice(0, 4000)}`
-          }
-        ],
-        max_tokens: 500,
-        temperature: 0
-      })
+          body: JSON.stringify({ rawText: rawText.slice(0, 4000) })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          extracted = data.question;
+        }
+      } catch (err) {
+        console.warn('SaaS OCR extraction fallback:', err);
+      }
+    } else {
+      // BYOK Mode
+      const whisperKey = groqKey || apiKey;
+      if (whisperKey) {
+        const apiUrl = groqKey
+          ? 'https://api.groq.com/openai/v1/chat/completions'
+          : 'https://api.openai.com/v1/chat/completions';
+        const fastModel = groqKey ? 'openai/gpt-oss-120b' : 'gpt-4o-mini';
 
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const extracted = data.choices?.[0]?.message?.content?.trim() || '';
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${whisperKey}`
+            },
+            body: JSON.stringify({
+              model: fastModel,
+              messages: [
+                {
+                  role: 'system',
+                  content: 'Extract ONLY the interview or coding question from this screen OCR text. Discard all UI clutter, window titles, tabs, menus, taskbars. If no question found, return NO_QUESTION_FOUND. Return only the question.'
+                },
+                {
+                  role: 'user',
+                  content: `Extract the clean interview/coding question from this OCR text:\n\n${rawText.slice(0, 4000)}`
+                }
+              ],
+              max_tokens: 500,
+              temperature: 0
+            })
+          });
+          const data = await res.json();
+          extracted = data.choices?.[0]?.message?.content?.trim() || '';
+        } catch (e) {
+          console.warn('BYOK extraction failed:', e);
+        }
+      }
+    }
 
     liveTranscriptBar.style.display = 'none';
 
     if (!extracted || extracted === 'NO_QUESTION_FOUND') {
       setStatusBar('Press Mic button to start');
-      showError('No interview question found on screen. Try 💬 text input.');
+      showError('📸 No interview question detected on screen.\n\n💡 Tips:\n• Make the question text larger on screen\n• Ensure question is fully visible\n• Try 💬 Text input instead');
       return;
     }
 
-    // Show extracted question briefly then answer
+    // Show extracted clean question briefly then answer
     liveTranscriptBar.style.display = 'flex';
     liveTranscriptTxt.textContent = '✅ ' + extracted.slice(0, 90) + (extracted.length > 90 ? '...' : '');
     setTimeout(() => { liveTranscriptBar.style.display = 'none'; }, 3000);
+
+    window._currentAskType = 'screenshot';
     await askCrackit(extracted);
 
   } catch (e) {
@@ -1290,6 +1516,40 @@ CRITICAL RULES:
 // ─── CORE: ASK CRACKIT ───
 // ══════════════════════════════════════════════════
 async function askCrackit(question, { fromSpeech = false, _isRetry = false } = {}) {
+  // ═══ SaaS Mode: Use Backend ═══
+  if (isSaasMode) {
+    if (saasCredits < 1) {
+      showError('⚠️ No credits remaining! Please upgrade at crackit.app/pricing');
+      return;
+    }
+    
+    if (!_isRetry) addUserBubble(question);
+    
+    // Clean question without prefix
+    const cleanQuestion = question.replace(/^\[SPEECH-TO-TEXT[^\]]*\]:\s*/i, '').trim();
+    conversationHistory.push({ role: 'user', content: cleanQuestion });
+    
+    setStatusBar('🤔 Thinking...');
+    const thinkingEl = addThinkingBubble();
+    
+    try {
+      const queryType = window._currentAskType || (fromSpeech ? 'mic' : 'text');
+      window._currentAskType = null;
+      const fullAnswer = await callSaasBackend(thinkingEl, queryType);
+      conversationHistory.push({ role: 'assistant', content: fullAnswer });
+      addFollowUpChips(fullAnswer);
+      if (ttsEnabled) speakText(fullAnswer);
+      setStatusBar('Press Mic button to start');
+    } catch (err) {
+      console.error('SaaS backend error:', err);
+      thinkingEl?.remove();
+      setStatusBar('Press Mic button to start');
+      showError(`❌ Error: ${err.message}`);
+    }
+    return;
+  }
+  // ═══ End SaaS Mode ═══
+
   const currentKey = provider === 'groq' ? groqKey : provider === 'gemini' ? geminiKey : provider === 'ollama' ? 'ollama-local' : apiKey;
   if (!currentKey) {
     settingsPanel.style.display = 'flex';
@@ -1400,11 +1660,7 @@ function addAnswerCard(thinkingEl) {
           <path d="M12 2L8 8H4L7 13L5 20L12 17L19 20L17 13L20 8H16L12 2Z" fill="#8b5cf6"/>
         </svg>
       </div>
-      <div class="answer-card streaming" id="currentAnswerCard">
-        <div class="answer-controls">
-          <button class="copy-btn" onclick="copyCard(this)">📋 Copy</button>
-        </div>
-      </div>
+      <div class="answer-card streaming" id="currentAnswerCard"></div>
     </div>`;
 
   // In teleprompter mode: hide ALL previous rows, show only this new one
@@ -1740,8 +1996,7 @@ function updateCard(card, text) {
   }
 
   const html = renderMarkdown(displayText);
-  // Preserve controls (copy + TTS buttons)
-  card.innerHTML = `<div class="answer-controls"><button class="copy-btn" onclick="copyCard(this)">📋 Copy</button></div>${html}`;
+  card.innerHTML = html;
   // Bug #1 Fix: throttle scrollIntoView with RAF to prevent streaming jitter
   if (isTeleprompterMode && !card._scrollPending) {
     card._scrollPending = true;
@@ -2138,7 +2393,7 @@ async function detectQuestion(transcript) {
     ? 'https://api.groq.com/openai/v1/chat/completions'
     : 'https://api.openai.com/v1/chat/completions';
 
-  const fastModel = groqKey ? 'llama-3.1-8b-instant' : 'gpt-4o-mini';
+  const fastModel = groqKey ? 'openai/gpt-oss-120b' : 'gpt-4o-mini';
 
   try {
     const res = await fetch(apiUrl, {
@@ -2337,9 +2592,6 @@ function loadConversationHistory() {
                   </svg>
                 </div>
                 <div class="answer-card">
-                  <div class="answer-controls">
-                    <button class="copy-btn" onclick="copyCard(this)">📋 Copy</button>
-                  </div>
                   ${escapeHtml(msg.content).replace(/`([^`]+)`/g, '<code>$1</code>')}
                 </div>
               </div>`;
@@ -2356,8 +2608,8 @@ function loadConversationHistory() {
 
 // Auto-save after each message
 const originalAskCrackit = askCrackit;
-askCrackit = async function (question) {
-  await originalAskCrackit.call(this, question);
+askCrackit = async function (question, options) {
+  await originalAskCrackit.call(this, question, options);
   saveConversationHistory();
 };
 

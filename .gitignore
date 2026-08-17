@@ -3,4 +3,10 @@ dist/
 build/
 .cache/
 .env
+.env.local
+.env.*.local
 *.log
+.next/
+backend/node_modules/
+website/node_modules/
+website/.next/

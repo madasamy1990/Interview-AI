@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -9,6 +9,44 @@
 </head>
 
 <body>
+  <!-- Login Screen -->
+  <div id="loginScreen" style="display:flex; position:fixed; inset:0; z-index:10000; background:#0a0a0f; flex-direction:column; align-items:center; justify-content:center; font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+    <!-- Login Window Title Bar (Draggable + Controls) -->
+    <div style="position:absolute; top:0; left:0; right:0; height:40px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; -webkit-app-region:drag; border-bottom:1px solid rgba(255,255,255,0.06); background:#13111c;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L8 8H4L7 13L5 20L12 17L19 20L17 13L20 8H16L12 2Z" fill="#8b5cf6" stroke="#a78bfa" stroke-width="0.5" />
+          <path d="M12 2L9 7M12 2L15 7" stroke="#c4b5fd" stroke-width="1" stroke-linecap="round" />
+        </svg>
+        <span style="color:#f1f5f9; font-size:13px; font-weight:600;">Crack it</span>
+      </div>
+      <div style="display:flex; gap:4px; -webkit-app-region:no-drag;">
+        <button class="win-btn" id="loginMinimizeBtn" title="Minimize" style="cursor:pointer;">—</button>
+        <button class="win-btn close-btn" id="loginCloseBtn" title="Close" style="cursor:pointer;">✕</button>
+      </div>
+    </div>
+
+    <div style="text-align:center; width:320px; margin-top:20px;">
+      <div style="font-size:28px; font-weight:800; margin-bottom:4px;">
+        <span style="background:linear-gradient(135deg,#7c3aed,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Crack It</span>
+      </div>
+      <p style="color:#94a3b8; font-size:13px; margin-bottom:24px;">AI Interview Copilot</p>
+      
+      <div id="loginError" style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:10px; margin-bottom:16px; color:#f87171; font-size:13px;"></div>
+      
+      <input id="loginEmail" type="email" placeholder="Email address" style="width:100%; padding:12px 16px; background:#13111c; border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:white; font-size:14px; margin-bottom:10px; outline:none; box-sizing:border-box;" />
+      <input id="loginPassword" type="password" placeholder="Password" style="width:100%; padding:12px 16px; background:#13111c; border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:white; font-size:14px; margin-bottom:12px; outline:none; box-sizing:border-box;" />
+      
+      <div style="text-align:right; margin-bottom:14px;">
+        <a href="#" id="loginForgotLink" style="color:#a78bfa; font-size:12px; text-decoration:none; transition:color 0.2s;">Forgot password?</a>
+      </div>
+
+      <button id="loginBtn" style="width:100%; padding:13px; background:#7c3aed; color:white; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:16px; transition:background 0.2s;">Login</button>
+      
+      <p style="color:#64748b; font-size:12px;">Don't have an account? <a href="#" id="signupLink" style="color:#7c3aed; text-decoration:none;">Sign up at crackit.app</a></p>
+    </div>
+  </div>
+
   <!-- Title Bar -->
   <div class="title-bar" id="titleBar">
     <div class="title-bar-left">
@@ -20,8 +58,13 @@
         </svg>
       </div>
       <span class="app-title">Crack it</span>
+      <span id="creditsBadge" style="display:none; background:#7c3aed; color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:8px;">💎 15</span>
+    </div>
+    <div class="title-bar-center" style="display:flex; justify-content:center; align-items:center; flex:1; overflow:hidden;">
+      <span id="userEmailBadge" style="display:none; color:#ddd6fe; font-weight:700; font-size:12px; letter-spacing:0.3px; background:rgba(124,58,237,0.2); border:1px solid rgba(139,92,246,0.35); padding:2px 14px; border-radius:12px; box-shadow:0 0 10px rgba(124,58,237,0.15); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
     </div>
     <div class="title-bar-right">
+      <button id="logoutBtn" title="Logout" style="display:none; background:none; border:none; color:#94a3b8; cursor:pointer; font-size:12px; padding:4px 8px; margin-right:4px;" onclick="handleLogout()">↩ Logout</button>
       <button class="win-btn" id="minimizeBtn" title="Minimize">—</button>
       <button class="win-btn close-btn" id="closeBtn" title="Close">✕</button>
     </div>
@@ -135,62 +178,6 @@
         <button class="close-settings" id="closeSettings">✕</button>
       </div>
       <div class="settings-body">
-        <label>🤖 AI Provider</label>
-        <select id="providerSelect">
-          <option value="groq">⚡ Groq — FREE + Instant 🚀</option>
-          <option value="gemini">✨ Google Gemini — FREE</option>
-          <option value="openai">💳 OpenAI ChatGPT — Paid</option>
-          <option value="ollama">🦙 Local Ollama — Offline</option>
-        </select>
-
-        <div id="groqSection">
-          <label>Groq API Key</label>
-          <input type="password" id="groqKeyInput" placeholder="gsk_..." />
-          <div class="hint">Possibility: <a href="#" id="openGroqLink">console.groq.com/keys</a></div>
-          <label>Model</label>
-          <select id="groqModelSelect">
-            <option value="llama-3.3-70b-versatile" selected>Llama 3.3 70B — Best 🧠</option>
-            <option value="llama-3.1-8b-instant">Llama 3.1 8B — Fastest ⚡</option>
-            <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B — Thinking 🧠</option>
-            <option value="mixtral-8x7b-32768">Mixtral 8x7B — Smart 💡</option>
-          </select>
-        </div>
-
-        <div id="geminiSection" style="display:none">
-          <label>Gemini API Key</label>
-          <input type="password" id="geminiKeyInput" placeholder="AIza..." />
-          <div class="hint">🆓 Free: <a href="#" id="openGeminiLink">aistudio.google.com/apikey</a></div>
-          <label>Model</label>
-          <select id="geminiModelSelect">
-            <option value="gemini-2.0-flash" selected>Gemini 2.0 Flash 🚀</option>
-            <option value="gemini-1.5-pro">Gemini 1.5 Pro 🧠</option>
-          </select>
-        </div>
-
-        <div id="openaiSection" style="display:none">
-          <label>OpenAI API Key</label>
-          <input type="password" id="apiKeyInput" placeholder="sk-..." />
-          <div class="hint">Get: <a href="#" id="openApiLink">platform.openai.com/api-keys</a></div>
-          <label>Model</label>
-          <select id="modelSelect">
-            <option value="gpt-4o-mini">GPT-4o Mini ⚡</option>
-            <option value="gpt-4o" selected>GPT-4o 🧠</option>
-          </select>
-        </div>
-
-        <div id="ollamaSection" style="display:none">
-          <label>Ollama API Endpoint</label>
-          <input type="text" id="ollamaEndpointInput" placeholder="http://localhost:11434" />
-          <label>Model</label>
-          <select id="ollamaModelSelect">
-            <option value="deepseek-r1" selected>DeepSeek-R1 (Thinking)</option>
-            <option value="deepseek-r1:8b">DeepSeek-R1 8B</option>
-            <option value="llama3">Llama 3</option>
-            <option value="mistral">Mistral</option>
-          </select>
-          <div class="hint">Ensure Ollama is running style server API.</div>
-        </div>
-
         <label>Opacity</label>
         <div class="range-row">
           <input type="range" id="opacitySlider" min="30" max="100" value="95" />
@@ -300,49 +287,38 @@
             </svg>
             Shortcuts
           </button>
-          <button class="save-btn" id="teleprompterBtn" onclick="toggleTeleprompter()" style="flex:1;min-width:120px;padding:8px 12px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-            Teleprompter
-          </button>        </div>
+        </div>
 
-        <button class="save-btn" id="saveSettingsBtn">💾 Save Settings</button>
+        <button class="save-btn" id="saveSettingsBtn">Save Settings</button>
       </div>
     </div>
   </div>
 
-  <!-- Keyboard Shortcuts Help Panel -->
-  <div class="settings-overlay" id="helpPanel" style="display:none">
-    <div class="settings-box shortcuts-box">
-      <div class="settings-head">
+  <!-- Help / Keyboard Shortcuts Panel -->
+  <div class="help-overlay" id="helpPanel" style="display:none">
+    <div class="help-box">
+      <div class="help-head">
         <span>⌨️ Keyboard Shortcuts</span>
-        <button class="close-settings" id="closeHelp">✕</button>
+        <button class="close-help" id="closeHelp">✕</button>
       </div>
-      <div class="shortcuts-body">
+      <div class="help-body">
         <div class="shortcut-group">
-          <h3>🎤 Recording</h3>
+          <h3>🎙️ Voice & Chat</h3>
           <div class="shortcut-row">
             <kbd>SPACE</kbd>
-            <span>Hold to record & auto-submit</span>
+            <span>Toggle-to-talk (Press to start, press again to answer)</span>
           </div>
-        </div>
-
-        <div class="shortcut-group">
-          <h3>💬 Text Input</h3>
           <div class="shortcut-row">
-            <kbd>T</kbd>
-            <span>Open text input panel</span>
+            <kbd>CTRL+M</kbd>
+            <span>Toggle microphone</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>CTRL+T</kbd>
+            <span>Open text question panel</span>
           </div>
           <div class="shortcut-row">
             <kbd>ENTER</kbd>
-            <span>Submit (in text panel)</span>
-          </div>
-          <div class="shortcut-row">
-            <kbd>SHIFT+ENTER</kbd>
-            <span>New line (in text panel)</span>
+            <span>Send text question</span>
           </div>
         </div>
 
@@ -366,36 +342,43 @@
           <h3>🕵️ Stealth</h3>
           <div class="shortcut-row">
             <kbd>CTRL+SHIFT+A</kbd>
-            <span>Toggle stealth mode (click-through)</span>
+            <span>Toggle stealth mode (mouse click-through)</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>CTRL+G</kbd>
+            <span>Toggle transparent / glass mode</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>CTRL+P</kbd>
+            <span>Toggle Teleprompter mode (under webcam)</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>CTRL+B</kbd>
+            <span>Boss Key — Minimize / Restore Crack it</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>CTRL+SHIFT+↑/↓</kbd>
+            <span>Scroll Crack it from ANY app</span>
           </div>
         </div>
-
-        <div class="shortcut-hint">💡 Pro tip: Use keyboard shortcuts while in an interview for silent control!</div>
       </div>
     </div>
   </div>
 
-  <!-- Snippet Mode Overlay -->
-  <div class="settings-overlay" id="cropModal"
-    style="display:none; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); z-index: 10000;">
-    <div class="settings-box"
-      style="width: 90%; height: 90%; max-width: 800px; max-height: 600px; border-radius: 12px; background: var(--bg2); border: 1px solid var(--border); display: flex; flex-direction: column;">
-      <div class="settings-head">
-        <span>📐 Select Area to OCR</span>
-        <button class="close-settings" id="cancelCropBtn">✕</button>
-      </div>
-      <div class="crop-container"
-        style="flex: 1; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; background: #000; padding: 10px;">
-        <canvas id="cropCanvas"
-          style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: crosshair;"></canvas>
-      </div>
-      <div class="settings-body"
-        style="flex: 0 0 auto; flex-direction: row; justify-content: flex-end; gap: 8px; padding: 12px; border-top: 1px solid var(--border);">
-        <button class="save-btn" id="performCropOcrBtn" style="margin-top:0; padding: 8px 16px;">🔍 OCR
-          Selection</button>
-      </div>
+  <!-- Snippet Crop Modal -->
+  <div id="cropModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); flex-direction:column; align-items:center; justify-content:center;">
+    <div style="color:white; margin-bottom:10px; font-weight:600; font-size:14px;">✂️ Drag to select question area:</div>
+    <div style="position:relative; max-width:90vw; max-height:80vh; overflow:hidden; border:2px dashed #7c3aed; border-radius:8px;">
+      <canvas id="cropCanvas" style="cursor:crosshair; display:block; max-width:100%; max-height:75vh;"></canvas>
+    </div>
+    <div style="display:flex; gap:12px; margin-top:12px;">
+      <button id="cancelCropBtn" style="padding:8px 16px; background:#334155; color:white; border:none; border-radius:6px; cursor:pointer;">Cancel</button>
+      <button id="performCropOcrBtn" style="padding:8px 16px; background:#7c3aed; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Extract & Ask ↵</button>
     </div>
   </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
 
   <script src="renderer.js"></script>
 </body>
