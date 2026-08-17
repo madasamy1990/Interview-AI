@@ -115,7 +115,7 @@ let saasToken = localStorage.getItem('crackit_token') || null;
 let saasUser = JSON.parse(localStorage.getItem('crackit_user') || 'null');
 let saasCredits = parseInt(localStorage.getItem('crackit_credits') || '0');
 let isSaasMode = !!saasToken;
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = 'https://interview-ai-fucx.onrender.com';
 let groqKey = localStorage.getItem('angel_groq_key') || '';
 let groqModel = localStorage.getItem('angel_groq_model') || 'llama-3.3-70b-versatile';
 let geminiKey = localStorage.getItem('angel_gemini_key') || '';
@@ -360,11 +360,11 @@ function init() {
   if (skipLoginBtn) skipLoginBtn.addEventListener('click', handleSkipLogin);
   if (signupLink) signupLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.open('http://localhost:3000/signup', '_blank');
+    window.open('https://website-pied-ten-80.vercel.app/signup', '_blank');
   });
   if (loginForgotLink) loginForgotLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.open('http://localhost:3000/forgot-password', '_blank');
+    window.open('https://website-pied-ten-80.vercel.app/forgot-password', '_blank');
   });
 
   // Enter key on password field
