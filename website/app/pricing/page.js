@@ -38,12 +38,33 @@ export default function Pricing() {
     setPaymentStatus(null);
   };
 
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://interview-ai-fucx.onrender.com';
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePayment = async () => {
     if (!selectedPlan || !user) return;
     setLoading(true);
     setPaymentStatus(null);
 
     try {
+      const isLoaded = await loadRazorpay();
+      if (!isLoaded) {
+        throw new Error('Razorpay SDK failed to load. Are you online?');
+      }
+
       // 1. Get session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -52,7 +73,7 @@ export default function Pricing() {
       }
 
       // 2. Create Razorpay order via backend
-      const orderRes = await fetch('http://localhost:3001/payment/create-order', {
+      const orderRes = await fetch(`${BACKEND_URL}/payment/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,7 +87,7 @@ export default function Pricing() {
 
       // 3. Open Razorpay Checkout
       const options = {
-        key: 'rzp_test_TQJDcAmNN7WwJK',
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TQJDcAmNN7WwJK',
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'Crack It',
@@ -75,7 +96,7 @@ export default function Pricing() {
         handler: async function (response) {
           // 4. Verify payment on backend
           try {
-            const verifyRes = await fetch('http://localhost:3001/payment/verify', {
+            const verifyRes = await fetch(`${BACKEND_URL}/payment/verify`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
