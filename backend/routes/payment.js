@@ -221,9 +221,86 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
 
     res.status(200).json({ status: 'ok' });
+// POST /submit-upi — Process Direct UPI Payment
+router.post('/submit-upi', optionalAuth, async (req, res) => {
+  try {
+    const { plan, email, utr, amount } = req.body;
+    let userEmail = req.user?.email || email;
+    let userId = req.user?.id;
+
+    if (!userEmail || !utr) {
+      return res.status(400).json({ error: 'Email and 12-digit UTR/Reference Number are required' });
+    }
+
+    // Clean UTR
+    const cleanUtr = String(utr).trim();
+    if (cleanUtr.length < 8) {
+      return res.status(400).json({ error: 'Please enter a valid 12-digit UTR/Reference number' });
+    }
+
+    // Find or create user
+    if (!userId) {
+      const { data: existingUser } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+
+      if (existingUser) {
+        userId = existingUser.id;
+      } else {
+        const { data: newUser } = await supabaseAdmin.auth.admin.createUser({
+          email: userEmail,
+          email_confirm: true,
+          user_metadata: { display_name: userEmail.split('@')[0] }
+        });
+        if (newUser?.user) {
+          userId = newUser.user.id;
+        }
+      }
+    }
+
+    // Determine credits
+    const creditsMap = { basic: 500, pro: 1000, ultimate: 2000 };
+    const creditsToAdd = creditsMap[plan] || 500;
+
+    if (userId) {
+      // Add credits to user profile
+      const { error: rpcErr } = await supabaseAdmin.rpc('add_credits', {
+        user_id_param: userId,
+        amount: creditsToAdd,
+        plan_name: plan || 'basic'
+      });
+
+      if (rpcErr) {
+        console.error('Error adding credits for UPI:', rpcErr);
+      }
+
+      // Record payment
+      await supabaseAdmin.from('payments').insert({
+        user_id: userId,
+        razorpay_payment_id: `upi_${cleanUtr}`,
+        razorpay_order_id: `order_upi_${Date.now()}`,
+        status: 'captured',
+        payment_method: 'upi_manual',
+        plan: plan || 'basic',
+        amount: amount || (plan === 'pro' ? 499900 : plan === 'ultimate' ? 799900 : 249900),
+        credits_added: creditsToAdd
+      });
+
+      console.log(`UPI Payment processed: ${creditsToAdd} credits added for ${userEmail} (UTR: ${cleanUtr})`);
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'UPI Payment submitted and credits activated successfully!',
+      creditsAdded: creditsToAdd,
+      email: userEmail
+    });
+
   } catch (err) {
-    console.error('Webhook error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('UPI submit error:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 });
 

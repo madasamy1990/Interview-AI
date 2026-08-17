@@ -29,34 +29,34 @@ export default function Pricing() {
   ];
 
   const [emailInput, setEmailInput] = useState('');
+  const [utrInput, setUtrInput] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   const handleSubscribe = (plan) => {
     setSelectedPlan(plan);
     setShowModal(true);
     setPaymentStatus(null);
+    setUtrInput('');
   };
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://interview-ai-fucx.onrender.com';
+  const UPI_ID = 'madasamy.kcet-1@okicici';
 
-  const loadRazorpay = () => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
+  const copyUpiId = () => {
+    navigator.clipboard.writeText(UPI_ID);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
   };
 
-  const handlePayment = async () => {
+  const handleUpiSubmit = async () => {
     if (!selectedPlan) return;
     const targetEmail = user?.email || emailInput.trim();
     if (!targetEmail || !targetEmail.includes('@')) {
       alert('Please enter a valid email address');
+      return;
+    }
+    if (!utrInput || utrInput.trim().length < 8) {
+      alert('Please enter the 12-digit UPI Reference / UTR Number from your payment app (GPay / PhonePe / Paytm)');
       return;
     }
 
@@ -64,101 +64,44 @@ export default function Pricing() {
     setPaymentStatus(null);
 
     try {
-      const isLoaded = await loadRazorpay();
-      if (!isLoaded) {
-        throw new Error('Razorpay SDK failed to load. Are you online?');
-      }
-
-      // Get optional session token
       const { data: { session } } = await supabase.auth.getSession();
-
-      // 2. Create Razorpay order via backend
       const headers = { 'Content-Type': 'application/json' };
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const orderRes = await fetch(`${BACKEND_URL}/payment/create-order`, {
+      const res = await fetch(`${BACKEND_URL}/payment/submit-upi`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           plan: selectedPlan.planId,
-          email: targetEmail
+          email: targetEmail,
+          utr: utrInput.trim(),
+          amount: selectedPlan.price * 100
         })
       });
 
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
-
-      // 3. Open Razorpay Checkout
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TQJDcAmNN7WwJK',
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
-        name: 'Crack It',
-        description: `${selectedPlan.name} Plan — ${selectedPlan.credits} Credits`,
-        order_id: orderData.order.id,
-        handler: async function (response) {
-          // 4. Verify payment on backend
-          try {
-            const verifyHeaders = { 'Content-Type': 'application/json' };
-            if (session?.access_token) {
-              verifyHeaders['Authorization'] = `Bearer ${session.access_token}`;
-            }
-
-            const verifyRes = await fetch(`${BACKEND_URL}/payment/verify`, {
-              method: 'POST',
-              headers: verifyHeaders,
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                plan: selectedPlan.planId,
-                email: targetEmail
-              })
-            });
-
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok) {
-              setPaymentStatus('success');
-              setTimeout(() => {
-                setShowModal(false);
-                router.push('/dashboard');
-              }, 2000);
-            } else {
-              setPaymentStatus('failed');
-            }
-          } catch (err) {
-            setPaymentStatus('failed');
-          }
-        },
-        prefill: {
-          email: targetEmail,
-          contact: ''
-        },
-        theme: {
-          color: '#7c3aed'
-        },
-        modal: {
-          ondismiss: function () {
-            setLoading(false);
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function () {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPaymentStatus('success');
+        setTimeout(() => {
+          setShowModal(false);
+          router.push('/dashboard');
+        }, 2500);
+      } else {
         setPaymentStatus('failed');
-        setLoading(false);
-      });
-      rzp.open();
-      setLoading(false);
-
+      }
     } catch (err) {
-      console.error('Payment error:', err);
+      console.error('UPI submit error:', err);
       setPaymentStatus('error');
+    } finally {
       setLoading(false);
     }
+  };
+
+  const getUpiUrl = () => {
+    if (!selectedPlan) return '';
+    return `upi://pay?pa=${UPI_ID}&pn=Crack%20It%20AI&am=${selectedPlan.price}&cu=INR&tn=CrackIt%20${selectedPlan.name}%20Plan`;
   };
 
   return (
@@ -254,83 +197,141 @@ export default function Pricing() {
         </div>
       </div>
       
-      {/* Payment Modal */}
+      {/* Dynamic UPI QR Payment Modal */}
       {showModal && selectedPlan && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#13111c] border border-white/10 rounded-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#13111c] border border-white/10 rounded-2xl max-w-lg w-full p-6 sm:p-8 my-8 shadow-2xl relative">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-xl font-bold text-white">Upgrade to {selectedPlan.name} {selectedPlan.emoji}</h3>
-                <p className="text-gray-400 text-sm">Monthly billing</p>
+                <h3 className="text-2xl font-extrabold text-white flex items-center gap-2">
+                  Upgrade to {selectedPlan.name} {selectedPlan.emoji}
+                </h3>
+                <p className="text-gray-400 text-sm mt-0.5">Instant UPI Activation (GPay / PhonePe / Paytm)</p>
               </div>
-              <button onClick={() => { setShowModal(false); setPaymentStatus(null); }} className="text-gray-400 hover:text-white text-2xl">×</button>
+              <button onClick={() => { setShowModal(false); setPaymentStatus(null); }} className="text-gray-400 hover:text-white text-2xl transition">✕</button>
             </div>
             
-            <div className="bg-[#0a0a0f] rounded-xl p-4 mb-6 space-y-3">
-              <div className="flex justify-between"><span className="text-gray-400">Plan</span><span className="text-white font-semibold">{selectedPlan.name} {selectedPlan.emoji}</span></div>
-              <div className="flex justify-between"><span className="text-gray-400">Credits added</span><span className="text-green-400 font-semibold">+{selectedPlan.credits.toLocaleString()}</span></div>
-              <hr className="border-white/5" />
-              <div className="flex justify-between"><span className="text-gray-400">You pay now</span><span className="text-white font-bold text-2xl">₹{selectedPlan.price.toLocaleString()}</span></div>
+            {/* Plan Info */}
+            <div className="bg-[#0a0a0f] rounded-xl p-4 mb-6 border border-white/5 space-y-2.5">
+              <div className="flex justify-between text-sm"><span className="text-gray-400">Selected Plan</span><span className="text-white font-semibold">{selectedPlan.name} {selectedPlan.emoji}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-gray-400">Credits added</span><span className="text-green-400 font-bold">+{selectedPlan.credits.toLocaleString()} Credits</span></div>
+              <hr className="border-white/5 my-1" />
+              <div className="flex justify-between items-center"><span className="text-gray-300 font-medium">Total Amount</span><span className="text-white font-extrabold text-2xl text-[#a78bfa]">₹{selectedPlan.price.toLocaleString()}</span></div>
             </div>
 
+            {/* Email Field if guest */}
             {!user && (
               <div className="mb-6">
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5">Email address (for your Crack It account)</label>
+                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  1. Your Email Address <span className="text-[#a78bfa]">*</span> (for your Crack It account)
+                </label>
                 <input 
                   type="email" 
-                  placeholder="e.g. your-email@gmail.com" 
+                  placeholder="e.g. yourname@gmail.com" 
                   value={emailInput} 
                   onChange={(e) => setEmailInput(e.target.value)} 
-                  className="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-4 py-3.5 text-white text-sm focus:border-[#7c3aed] outline-none transition"
+                  className="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:border-[#7c3aed] outline-none transition"
                   required
                 />
               </div>
             )}
 
-            {/* Payment Success / Error Messages */}
+            {/* Step 2: UPI QR Code Section */}
+            <div className="mb-6 bg-[#0a0a0f] border border-white/5 rounded-2xl p-5 text-center">
+              <p className="text-xs font-semibold text-gray-300 mb-3">
+                {user ? '1.' : '2.'} Scan & Pay <span className="text-white font-bold">₹{selectedPlan.price.toLocaleString()}</span> with any UPI App:
+              </p>
+
+              {/* QR Code Container */}
+              <div className="bg-white p-3.5 rounded-2xl w-48 h-48 mx-auto mb-3 shadow-lg flex items-center justify-center">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(getUpiUrl())}&margin=0`} 
+                  alt="UPI QR Code" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+              {/* Supported apps */}
+              <div className="flex items-center justify-center gap-3 text-gray-400 text-xs font-medium mb-3">
+                <span>⚡ GPay</span>
+                <span>•</span>
+                <span>📱 PhonePe</span>
+                <span>•</span>
+                <span>💳 Paytm</span>
+                <span>•</span>
+                <span>🏛️ CRED / BHIM</span>
+              </div>
+
+              {/* Copyable UPI ID */}
+              <div className="flex items-center justify-center gap-2 bg-[#13111c] border border-white/10 rounded-xl px-3 py-2 text-xs">
+                <span className="text-gray-400 font-mono">UPI ID: <span className="text-white font-semibold">{UPI_ID}</span></span>
+                <button 
+                  onClick={copyUpiId}
+                  className="bg-[#7c3aed]/20 text-[#a78bfa] hover:bg-[#7c3aed] hover:text-white px-2.5 py-1 rounded-md text-[11px] font-bold transition"
+                >
+                  {copiedUpi ? '✓ Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              {/* Mobile direct pay link */}
+              <a 
+                href={getUpiUrl()} 
+                className="mt-3 inline-block text-xs text-[#a78bfa] hover:underline font-semibold sm:hidden"
+              >
+                📱 Click here to Pay directly on GPay / PhonePe App
+              </a>
+            </div>
+
+            {/* Step 3: Enter UTR */}
+            <div className="mb-6">
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                {user ? '2.' : '3.'} Enter 12-digit UPI Reference / UTR Number <span className="text-[#a78bfa]">*</span>
+              </label>
+              <input 
+                type="text" 
+                placeholder="e.g. 423871928371 (shown after payment in GPay/PhonePe)" 
+                value={utrInput} 
+                onChange={(e) => setUtrInput(e.target.value)} 
+                className="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:border-[#7c3aed] outline-none font-mono tracking-wider transition"
+                maxLength={20}
+              />
+              <p className="text-[11px] text-gray-500 mt-1">Found in payment receipt: "UPI Ref No" or "UTR No".</p>
+            </div>
+
+            {/* Status alerts */}
             {paymentStatus === 'success' && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6 text-center">
-                <div className="text-3xl mb-2">🎉</div>
-                <p className="text-green-400 font-bold">Payment Successful!</p>
-                <p className="text-green-400/70 text-sm mt-1">+{selectedPlan.credits.toLocaleString()} credits added. Redirecting to dashboard...</p>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6 text-center animate-bounce">
+                <div className="text-3xl mb-1">🎉</div>
+                <p className="text-green-400 font-bold">Payment Verified & Activated!</p>
+                <p className="text-green-400/70 text-xs mt-0.5">+{selectedPlan.credits.toLocaleString()} credits added. Redirecting to dashboard...</p>
               </div>
             )}
 
             {paymentStatus === 'failed' && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-center">
-                <p className="text-red-400 font-bold">❌ Payment Failed</p>
-                <p className="text-red-400/70 text-sm mt-1">Please try again or use a different payment method.</p>
+                <p className="text-red-400 font-bold text-sm">❌ Verification Failed</p>
+                <p className="text-red-400/70 text-xs mt-0.5">Please check the UTR number or contact support.</p>
               </div>
             )}
 
             {paymentStatus === 'error' && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-center">
-                <p className="text-red-400 font-bold">⚠️ Network Error</p>
-                <p className="text-red-400/70 text-sm mt-1">Please check your connection and try again.</p>
+                <p className="text-red-400 font-bold text-sm">⚠️ Network Error</p>
+                <p className="text-red-400/70 text-xs mt-0.5">Please check your connection and try again.</p>
               </div>
             )}
 
             {!paymentStatus && (
-              <>
-                <button 
-                  onClick={handlePayment}
-                  disabled={loading}
-                  className="w-full bg-[#7c3aed] hover:bg-purple-600 text-white font-bold py-4 rounded-xl transition text-lg shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-50 mb-4"
-                >
-                  {loading ? '⏳ Processing...' : `Pay ₹${selectedPlan.price.toLocaleString()} & Upgrade`}
-                </button>
-                
-                <div className="flex items-center justify-center gap-4 text-gray-500 text-xs mb-3">
-                  <span>🔒 Secure</span>
-                  <span>•</span>
-                  <span>💳 Cards, UPI, Net Banking</span>
-                  <span>•</span>
-                  <span>📱 GPay, PhonePe</span>
-                </div>
-              </>
+              <button 
+                onClick={handleUpiSubmit}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-[#7c3aed] to-purple-600 hover:from-purple-600 hover:to-[#7c3aed] text-white font-bold py-4 rounded-xl transition text-base shadow-[0_0_25px_rgba(124,58,237,0.4)] disabled:opacity-50 mb-3"
+              >
+                {loading ? '⏳ Verifying...' : `✅ Submit & Activate +${selectedPlan.credits.toLocaleString()} Credits`}
+              </button>
             )}
             
-            <button onClick={() => { setShowModal(false); setPaymentStatus(null); }} className="block mx-auto text-gray-400 hover:text-white text-sm mt-2 transition">Cancel</button>
+            <button onClick={() => { setShowModal(false); setPaymentStatus(null); }} className="block mx-auto text-gray-500 hover:text-gray-300 text-xs transition">Cancel</button>
           </div>
         </div>
       )}
