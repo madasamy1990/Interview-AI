@@ -28,11 +28,9 @@ export default function Pricing() {
     { name: 'Ultimate', emoji: '💎', price: 7999, period: '/mo', credits: 2000, creditLabel: 'monthly', planId: 'ultimate', features: ['2,000 Credits/month', 'Everything in Pro', 'VIP Support', 'Early Access Features', '1-on-1 Onboarding', 'Priority Queue'], cta: 'Subscribe' },
   ];
 
+  const [emailInput, setEmailInput] = useState('');
+
   const handleSubscribe = (plan) => {
-    if (!user) {
-      router.push('/signup');
-      return;
-    }
     setSelectedPlan(plan);
     setShowModal(true);
     setPaymentStatus(null);
@@ -55,7 +53,13 @@ export default function Pricing() {
   };
 
   const handlePayment = async () => {
-    if (!selectedPlan || !user) return;
+    if (!selectedPlan) return;
+    const targetEmail = user?.email || emailInput.trim();
+    if (!targetEmail || !targetEmail.includes('@')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     setPaymentStatus(null);
 
@@ -65,21 +69,22 @@ export default function Pricing() {
         throw new Error('Razorpay SDK failed to load. Are you online?');
       }
 
-      // 1. Get session token
+      // Get optional session token
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
 
       // 2. Create Razorpay order via backend
+      const headers = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const orderRes = await fetch(`${BACKEND_URL}/payment/create-order`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ plan: selectedPlan.planId })
+        headers,
+        body: JSON.stringify({ 
+          plan: selectedPlan.planId,
+          email: targetEmail
+        })
       });
 
       const orderData = await orderRes.json();
@@ -96,17 +101,20 @@ export default function Pricing() {
         handler: async function (response) {
           // 4. Verify payment on backend
           try {
+            const verifyHeaders = { 'Content-Type': 'application/json' };
+            if (session?.access_token) {
+              verifyHeaders['Authorization'] = `Bearer ${session.access_token}`;
+            }
+
             const verifyRes = await fetch(`${BACKEND_URL}/payment/verify`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
+              headers: verifyHeaders,
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                plan: selectedPlan.planId
+                plan: selectedPlan.planId,
+                email: targetEmail
               })
             });
 
@@ -124,6 +132,34 @@ export default function Pricing() {
             setPaymentStatus('failed');
           }
         },
+        prefill: {
+          email: targetEmail,
+          contact: ''
+        },
+        theme: {
+          color: '#7c3aed'
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function () {
+        setPaymentStatus('failed');
+        setLoading(false);
+      });
+      rzp.open();
+      setLoading(false);
+
+    } catch (err) {
+      console.error('Payment error:', err);
+      setPaymentStatus('error');
+      setLoading(false);
+    }
+  };
         prefill: {
           email: user.email,
           contact: ''
@@ -264,6 +300,20 @@ export default function Pricing() {
               <hr className="border-white/5" />
               <div className="flex justify-between"><span className="text-gray-400">You pay now</span><span className="text-white font-bold text-2xl">₹{selectedPlan.price.toLocaleString()}</span></div>
             </div>
+
+            {!user && (
+              <div className="mb-6">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5">Email address (for your Crack It account)</label>
+                <input 
+                  type="email" 
+                  placeholder="e.g. your-email@gmail.com" 
+                  value={emailInput} 
+                  onChange={(e) => setEmailInput(e.target.value)} 
+                  className="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-4 py-3.5 text-white text-sm focus:border-[#7c3aed] outline-none transition"
+                  required
+                />
+              </div>
+            )}
 
             {/* Payment Success / Error Messages */}
             {paymentStatus === 'success' && (
