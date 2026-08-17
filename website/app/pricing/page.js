@@ -160,34 +160,6 @@ export default function Pricing() {
       setLoading(false);
     }
   };
-        prefill: {
-          email: user.email,
-          contact: ''
-        },
-        theme: {
-          color: '#7c3aed'
-        },
-        modal: {
-          ondismiss: function () {
-            setLoading(false);
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function () {
-        setPaymentStatus('failed');
-        setLoading(false);
-      });
-      rzp.open();
-      setLoading(false);
-
-    } catch (err) {
-      console.error('Payment error:', err);
-      setPaymentStatus('error');
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="bg-[#0a0a0f] pt-24 pb-32 min-h-screen relative">
