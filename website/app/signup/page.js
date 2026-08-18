@@ -32,7 +32,7 @@ export default function Signup() {
 
     try {
       // Call backend API (uses Admin API — NO rate limit!)
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://crack-it-backend.onrender.com';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://interview-ai-fucx.onrender.com';
       const res = await fetch(`${backendUrl}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
