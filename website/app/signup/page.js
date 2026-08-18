@@ -31,7 +31,35 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      // Call backend API (uses Admin API — NO rate limit!)
+      // 1. Direct Supabase Client Signup (Fast, direct client connection)
+      const { data: supaData, error: supaError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: name,
+          }
+        }
+      });
+
+      if (!supaError && supaData?.user) {
+        if (supaData.session) {
+          router.push('/dashboard');
+          return;
+        } else {
+          // Try sign in
+          const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+          if (!loginError) {
+            router.push('/dashboard');
+            return;
+          }
+          setMessage('🎉 Account created! Please check your email or proceed to login.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback: Call Backend Admin API (in case client signup hit rate limit)
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://interview-ai-fucx.onrender.com';
       const res = await fetch(`${backendUrl}/auth/signup`, {
         method: 'POST',
@@ -42,12 +70,11 @@ export default function Signup() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || 'Signup failed. Please try again.');
+        setError(data.message || supaError?.message || 'Signup failed. Please try again.');
         setLoading(false);
         return;
       }
 
-      // If we got a session back, set it in Supabase client
       if (data.session) {
         await supabase.auth.setSession({
           access_token: data.session.access_token,
@@ -55,16 +82,19 @@ export default function Signup() {
         });
         router.push('/dashboard');
       } else {
-        // Fallback: try manual login
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginError) {
-          setMessage('🎉 Account created! Please login.');
-        } else {
-          router.push('/dashboard');
-        }
+        router.push('/dashboard');
       }
     } catch (err) {
-      setError('Network error. Please check your connection.');
+      console.error('Signup error:', err);
+      // Try direct Supabase login if user was already created
+      try {
+        const { data: logData, error: logErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (!logErr && logData?.session) {
+          router.push('/dashboard');
+          return;
+        }
+      } catch (_) {}
+      setError(err.message || 'Unable to sign up. Please try again.');
     }
 
     setLoading(false);
