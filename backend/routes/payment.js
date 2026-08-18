@@ -221,6 +221,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
 
     res.status(200).json({ status: 'ok' });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // POST /submit-upi — Process Direct UPI Payment
 router.post('/submit-upi', optionalAuth, async (req, res) => {
   try {

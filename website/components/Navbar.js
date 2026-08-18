@@ -9,6 +9,9 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const router = useRouter();
 
+  const ADMIN_EMAILS = ['madasamynagarajan1990@gmail.com'];
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -47,6 +50,9 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
+                {isAdmin && (
+                  <Link href="/admin" className="text-[#f59e0b] hover:text-yellow-300 transition font-semibold flex items-center gap-1">🛡️ Admin</Link>
+                )}
                 <Link href="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>
                 <button onClick={handleLogout} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl font-medium transition">
                   Logout
@@ -83,6 +89,9 @@ export default function Navbar() {
             <hr className="border-white/10" />
             {user ? (
               <>
+                {isAdmin && (
+                  <Link href="/admin" onClick={() => setMenuOpen(false)} className="block text-[#f59e0b] hover:text-yellow-300 transition py-2 font-semibold">🛡️ Admin</Link>
+                )}
                 <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-gray-300 hover:text-white transition py-2">Dashboard</Link>
                 <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left text-red-400 hover:text-red-300 transition py-2">Logout</button>
               </>

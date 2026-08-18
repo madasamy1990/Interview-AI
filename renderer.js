@@ -866,7 +866,21 @@ function appendCommand(cmd) { manualInput.value = cmd; manualInput.focus(); }
 
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName?.toLowerCase();
-  const isTextInput = tag === 'textarea' || (tag === 'input' && document.activeElement.id === 'manualInput');
+  const isTextInput = tag === 'textarea' || tag === 'input' || document.activeElement?.isContentEditable;
+  const loginScreen = document.getElementById('loginScreen');
+  const isLoginVisible = loginScreen && loginScreen.style.display !== 'none';
+
+  // If login screen is visible, don't intercept any global shortcuts
+  if (isLoginVisible) {
+    if (e.key === 'Enter') {
+      const activeId = document.activeElement?.id;
+      if (activeId === 'loginEmail' || activeId === 'loginPassword') {
+        e.preventDefault();
+        handleLogin();
+      }
+    }
+    return;
+  }
 
   // Teleprompter: arrow keys scroll, ESC exits
   if (isTeleprompterMode && !isTextInput) {
