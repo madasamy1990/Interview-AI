@@ -74,6 +74,58 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section 2.5: Stealth & Privacy Guarantee */}
+      <section className="py-20 relative bg-gradient-to-b from-transparent via-[#7c3aed]/5 to-transparent">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="bg-[#7c3aed]/10 text-[#a78bfa] border border-[#7c3aed]/20 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
+              Military-Grade Privacy
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-4 text-white">
+              Built for Stealth. Engineered for Privacy.
+            </h2>
+            <p className="text-gray-400 text-lg">
+              The invisible AI copilot designed to work silently in the background with zero detection.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="glass-card p-8 rounded-2xl border border-white/10 hover:border-[#7c3aed]/40 transition duration-300 relative overflow-hidden group">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl mb-6 text-purple-400">
+                🪟
+              </div>
+              <div className="text-xs font-bold text-[#a78bfa] tracking-wider uppercase mb-2">Stealth Mode</div>
+              <h3 className="text-xl font-bold text-white mb-3">100% Screen-Share Invisible</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Hardware-level window protection bypasses screen capture. When sharing your screen on Zoom, Google Meet, or Microsoft Teams, interviewers see only your presentation — never your AI assistant.
+              </p>
+            </div>
+
+            <div className="glass-card p-8 rounded-2xl border border-white/10 hover:border-[#7c3aed]/40 transition duration-300 relative overflow-hidden group">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl mb-6 text-purple-400">
+                🔇
+              </div>
+              <div className="text-xs font-bold text-[#a78bfa] tracking-wider uppercase mb-2">Zero Echo</div>
+              <h3 className="text-xl font-bold text-white mb-3">Passive Audio Capture</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Listens passively through your system audio loopback without transmitting any voice prompts, clicks, or robotic TTS speech through your microphone. 100% silent operation.
+              </p>
+            </div>
+
+            <div className="glass-card p-8 rounded-2xl border border-white/10 hover:border-[#7c3aed]/40 transition duration-300 relative overflow-hidden group">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl mb-6 text-purple-400">
+                ⚡
+              </div>
+              <div className="text-xs font-bold text-[#a78bfa] tracking-wider uppercase mb-2">Natural Delivery</div>
+              <h3 className="text-xl font-bold text-white mb-3">Senior-Level 6-Section Answers</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Avoid robotic AI answers. Crack It structures replies with direct solutions, real-world experience anecdotes, best practices, and code snippets — sounding like a seasoned 10+ year tech veteran.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Section 3: How It Works */}
       <section className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
