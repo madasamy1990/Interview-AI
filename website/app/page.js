@@ -125,7 +125,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 text-left">
             {[
               { name: 'Free 🚀', price: '₹0', credits: '15 Credits' },
-              { name: 'Basic ⚡', price: '₹10', credits: '500 Credits' },
+              { name: 'Basic ⚡', price: '₹5,499', credits: '500 Credits' },
               { name: 'Pro 🔥', price: '₹9,999', credits: '1,000 Credits', popular: true },
               { name: 'Ultimate 💎', price: '₹14,999', credits: '2,000 Credits' },
             ].map((plan, i) => (

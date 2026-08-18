@@ -23,7 +23,7 @@ export default function Pricing() {
 
   const plans = [
     { name: 'Free', emoji: '🚀', price: 0, period: 'forever', credits: 15, creditLabel: 'one-time', features: ['15 Credits (one-time)', 'Voice-to-Answer', 'Text Chat', 'Standard Support'], cta: 'Start Free', href: '/signup' },
-    { name: 'Basic', emoji: '⚡', price: 10, period: '/mo', credits: 500, creditLabel: 'monthly', planId: 'basic', features: ['500 Credits/month', 'Voice + Text + Screenshot', 'Priority Support', 'Screen Share Safe', 'All Themes'], cta: 'Subscribe' },
+    { name: 'Basic', emoji: '⚡', price: 5499, period: '/mo', credits: 500, creditLabel: 'monthly', planId: 'basic', features: ['500 Credits/month', 'Voice + Text + Screenshot', 'Priority Support', 'Screen Share Safe', 'All Themes'], cta: 'Subscribe' },
     { name: 'Pro', emoji: '🔥', price: 9999, period: '/mo', credits: 1000, creditLabel: 'monthly', planId: 'pro', popular: true, features: ['1,000 Credits/month', 'Everything in Basic', 'Teleprompter Mode', '300ms Response', '24/7 Support', 'Custom Themes'], cta: 'Subscribe' },
     { name: 'Ultimate', emoji: '💎', price: 14999, period: '/mo', credits: 2000, creditLabel: 'monthly', planId: 'ultimate', features: ['2,000 Credits/month', 'Everything in Pro', 'VIP Support', 'Early Access Features', '1-on-1 Onboarding', 'Priority Queue'], cta: 'Subscribe' },
   ];

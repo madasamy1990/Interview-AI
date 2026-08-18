@@ -115,7 +115,7 @@ let resumeText = localStorage.getItem('crackit_resume_text') || '';
 let resumeFilename = localStorage.getItem('crackit_resume_filename') || '';
 
 // TTS State
-let ttsEnabled = localStorage.getItem('angel_tts_enabled') !== 'false'; // ON by default
+let ttsEnabled = localStorage.getItem('angel_tts_enabled') === 'true'; // OFF by default
 let ttsSpeed = parseFloat(localStorage.getItem('angel_tts_speed') || '1.0');
 let currentUtterance = null;
 let isSpeaking = false;
@@ -537,13 +537,15 @@ function setStatusBar(msg) {
 minimizeBtn.addEventListener('click', () => window.electronAPI?.minimizeWindow());
 closeBtn.addEventListener('click', () => window.electronAPI?.closeWindow());
 
-// ─── Hide Toggle ───
-hideBtn.addEventListener('click', async () => {
-  if (window.electronAPI) isHidden = await window.electronAPI.toggleHide();
-  else isHidden = !isHidden;
-  hideBtn.classList.toggle('active', isHidden);
-  setStatusBar(isHidden ? '🫥 Hidden from screen share' : 'Press Mic button to start');
-});
+// ─── Hide Toggle (Optional) ───
+if (hideBtn) {
+  hideBtn.addEventListener('click', async () => {
+    if (window.electronAPI) isHidden = await window.electronAPI.toggleHide();
+    else isHidden = !isHidden;
+    hideBtn.classList.toggle('active', isHidden);
+    setStatusBar(isHidden ? '🫥 Hidden from screen share' : 'Press Mic button to start');
+  });
+}
 
 // ─── Transparent / Glass Mode Toggle ───
 let isGlassMode = localStorage.getItem('angel_glass_mode') === 'true';

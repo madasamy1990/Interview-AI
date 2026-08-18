@@ -10,3 +10,5 @@ build/
 backend/node_modules/
 website/node_modules/
 website/.next/
+website/public/downloads/
+*.exe

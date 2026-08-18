@@ -67,7 +67,7 @@ router.post('/create-order', optionalAuth, async (req, res) => {
       }
     }
 
-    let amount = 1000; // basic (₹10 test mode)
+    let amount = 549900; // basic (₹5,499)
     if (plan === 'pro') amount = 999900; // pro (₹9,999)
     if (plan === 'ultimate') amount = 1499900; // ultimate (₹14,999)
 
