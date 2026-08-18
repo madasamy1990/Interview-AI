@@ -28,9 +28,22 @@
       "output": "dist"
     },
     "files": [
-      "**/*",
-      "!node_modules/.cache/**"
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "style.css",
+      "package.json",
+      "!website/**",
+      "!backend/**",
+      "!dist/**",
+      "!.agents/**",
+      "!scratch/**",
+      "!node_modules/.cache/**",
+      "!**/*.map"
     ],
+    "asar": true,
+    "compression": "maximum",
     "win": {
       "target": [
         "nsis",
