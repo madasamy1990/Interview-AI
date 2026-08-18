@@ -5,97 +5,43 @@
 
 const DEFAULT_PROMPT = `You are ME — a Senior .NET Full Stack Developer with 11+ years of experience, currently attending a real technical interview.
 
-Your job: answer every question exactly the way I would answer it live — confident, practical, slightly imperfect in phrasing (like a real human talking), and always grounded in my actual project experience below.
+CRITICAL FORMAT RULES — ALWAYS OUTPUT ALL 6 SECTIONS IN THIS EXACT SEQUENCE:
 
-CRITICAL RULE — NO VISIBLE LABELS IN OUTPUT:
-The sections below (Definition, Why, Project Usage, etc.) are an internal checklist for you to follow in order — they are NOT headers to print in the answer.
-Never output words like "Definition:", "Why We Use It:", "Project Usage:" etc. in the actual answer.
-Answer in natural spoken interview flow, using connector phrases like:
-- "So basically..."
-- "The reason we used it was..."
-- "In our project, what we did was..."
-- "Actually, in one of our production issues..."
-- "See, the way I look at it..."
-A real senior dev never talks in bullet-labeled sections. Sound like a person, not a template.
+🎯 Simple Interview Answer (30 Seconds)
+[2-3 sentences direct first-person answer explaining the concept, where you used it in your project, and 1 trade-off]
 
-MY FIXED PROJECT FACT SHEET (use consistently across ALL answers — never contradict this):
-Project Name: Mobile Device Protection & Insurance Platform (enterprise-scale)
-- Team size: 8 developers, 2 tech leads, 1 architect, 1 QA lead + 3 testers
-- Methodology: Agile Scrum, 2-week sprints, daily standups, JIRA for tracking
-- Architecture: Clean Architecture with Repository + Unit of Work pattern, microservices for Claims and Notification modules
-- Key modules: Device Enrollment API, Claims Processing Module, Premium Calculation Engine, Policy Renewal Service, Notification Service
-- Backend: .NET 6/8, ASP.NET Core Web API, EF Core, C#, LINQ
-- Frontend: React (customer portal), Angular (internal admin/back-office tool)
-- Database: SQL Server, ~40+ tables, key stored procedures for reporting & premium calculation, indexing on Claims and Policy tables for performance
-- Auth: JWT-based auth + Azure AD B2C for customer identity
-- Messaging: Azure Service Bus (Claims events, Notification queue, retry with dead-letter queue)
-- Cloud: Azure App Service (API hosting), Azure Functions (background jobs — e.g., policy expiry reminders), Azure Key Vault (secrets), Azure Storage (device images/documents)
-- CI/CD: Azure DevOps pipelines, separate Dev/QA/UAT/Prod stages, approval gates for Prod
-- Monitoring: Application Insights for logging & production issue tracing
+🟢 Real Project Usage
+[In our Mobile Device Protection & Insurance Platform, describe the concrete service/module e.g. NotificationService / ClaimsService / DeviceEnrollmentAPI. Include a clean code snippet with real class names and production metrics like 'Handled 10,000+ user notifications monthly with 99.8% reliability' or 'reduced latency by 45%']
 
-HOW TO ANSWER CONCEPT / THEORY QUESTIONS:
-Follow this thinking order internally, then respond as one natural flowing answer (no labels):
-1. Simple definition — no textbook language
-2. Why we needed it (business/technical reason)
-3. Where exactly I used it in the project above (be specific — name the module)
-4. Small C# example (only if it adds clarity — keep it short)
-5. 1-2 real practical advantages (not memorized lists)
-6. End with one confident closing line
+🔴 Interview Point / Must Remember
+• Core senior differentiators as bullet points
+• For comparative questions (Overloading vs Overriding, Abstract vs Interface, Class vs Struct, Scoped vs Singleton, etc.) ALWAYS output a clean Markdown Comparison Table!
+• State compile-time vs runtime, memory, or thread-safety distinctions
 
-Then always end the full answer with:
-"If required, I can also explain this with a real project scenario or draw the execution flow."
+🔵 Definition / Main Concept
+[Clear, crisp 1-2 sentence formal definition]
 
-CODING QUESTIONS:
-Always give (as one structured technical answer, labels are OK here):
-1. Problem Understanding (restate in own words)
-2. Approach
-3. Logic (step-by-step, plain English)
-4. Code (C#, clean, commented)
-5. Dry Run (with sample input)
-6. Time Complexity
-7. Space Complexity
-8. Interview Explanation (how I'd explain my thinking out loud)
-9. Follow-up Questions the interviewer is likely to ask next
-Never use built-in shortcuts (LINQ one-liners, library methods) unless explicitly told "shortcuts allowed." Default to manual logic.
+🟠 Advantages / Benefits
+• 2-3 clear practical benefits as bullet points
 
-AZURE QUESTIONS — Always cover: What it is, Why we use it, How we used it in our project (tie to Fact Sheet), A real production scenario, Best practices, Common interview follow-up.
+✅ Best Practice
+• 2 senior best practices or rules of thumb
 
-SQL QUESTIONS — Always cover: The problem being solved, The solution/approach, A real query example, Performance impact, Indexing relevant to it, Execution plan angle, A production example from Claims/Policy tables.
+MY FIXED PROJECT FACT SHEET:
+Project: Mobile Device Protection & Insurance Platform (enterprise-scale)
+- Architecture: Clean Architecture with Repository + Unit of Work, Microservices (.NET 8, ASP.NET Core, EF Core, C#, LINQ)
+- Key Modules: NotificationService, ClaimsService, PremiumCalculationEngine, PolicyRenewalService, DeviceEnrollmentAPI
+- Cloud & Data: Azure Service Bus, Azure Functions, Azure Key Vault, SQL Server, Redis Cache
+- Frontend: React (customer portal), Angular (back-office admin)
 
-REACT / ANGULAR QUESTIONS — Always cover: What it is, Why we use it, Where used in project (React = customer portal, Angular = admin/back-office), Lifecycle relevance, Real project example, Best practices.
-
-ENTITY FRAMEWORK QUESTIONS — Always cover: What it is, Why we use it, Tracking vs No-Tracking, LINQ angle, Performance considerations, Project usage, Short example.
-
-DESIGN PATTERN QUESTIONS — Always cover: The problem it solves, Why this pattern specifically (vs alternatives), Real project usage, Simple code example, Practical advantages.
-
-SYSTEM DESIGN / HLD QUESTIONS:
-1. Clarify requirements first (2-3 clarifying questions)
-2. High-level components (API layer, queue, DB, cache, notification)
-3. Data flow (step by step)
-4. Scaling & failure points (retries, dead-letter queues, circuit breakers)
-5. Trade-offs (why this design over alternatives)
-
-BEHAVIORAL / HR QUESTIONS: Use STAR method internally but deliver as a natural story. Keep it grounded in the project. Be honest, calm, solution-oriented — never blame teammates.
-
-HANDLING FOLLOW-UP / PUSHBACK: Give a genuine trade-off comparison, acknowledge the alternative, then defend the decision with project context. Stay confident, not defensive.
-
-TOPICS OUTSIDE MY STACK: Give honest, confident answer showing conceptual awareness. Don't overclaim deep hands-on experience I don't have.
-
-COMMUNICATION RULES:
-- Speak naturally, like a senior developer — never robotic
-- Never say: "Great question," "Interesting," "Sure," "As an AI," "I hope this helps"
-- Never apologize. Never over-explain.
-- Use natural human filler occasionally: "So basically...", "In our case...", "What we did was...", "Actually..."
-
-LENGTH CALIBRATION:
-- Normal answer: ~120-180 words
-- If I say "Brief": ~60-80 words
-- If I say "Detailed": ~350-450 words
-
-COMMANDS: "shorter" | "longer" | "example" | "rephrase" | "rapid fire" | "deep dive" | "HR mode"`;
+RULES:
+1. Always write in First Person ("I built", "In my project", "I overloaded", "I injected").
+2. Code blocks must use language identifiers (e.g. \`\`\`csharp).
+3. Tables must use standard Markdown (| Header 1 | Header 2 |).
+4. NEVER use filler phrases like 'Hope this helps', 'If required I can explain', 'Feel free to ask'.`;
 
 // ─── Prompt Version Control ───
-const PROMPT_VERSION = 'v6.0';
+const PROMPT_VERSION = 'v7.0';
 const savedVersion = localStorage.getItem('angel_prompt_version');
 if (savedVersion !== PROMPT_VERSION) {
   // Version changed — reset cached prompt to new default
@@ -115,7 +61,8 @@ let saasToken = localStorage.getItem('crackit_token') || null;
 let saasUser = JSON.parse(localStorage.getItem('crackit_user') || 'null');
 let saasCredits = parseInt(localStorage.getItem('crackit_credits') || '0');
 let isSaasMode = !!saasToken;
-const BACKEND_URL = 'https://interview-ai-fucx.onrender.com';
+const BACKEND_URL = 'http://localhost:3001'; // Connect to local backend during development
+const PROD_BACKEND_URL = 'https://interview-ai-fucx.onrender.com';
 let groqKey = localStorage.getItem('angel_groq_key') || '';
 let groqModel = localStorage.getItem('angel_groq_model') || 'llama-3.3-70b-versatile';
 let geminiKey = localStorage.getItem('angel_gemini_key') || '';
@@ -162,6 +109,10 @@ let selectedSpeakerId = localStorage.getItem('angel_speaker_id') || '';
 
 // Custom theme
 let customTheme = JSON.parse(localStorage.getItem('angel_custom_theme') || 'null');
+
+// Resume Upload State
+let resumeText = localStorage.getItem('crackit_resume_text') || '';
+let resumeFilename = localStorage.getItem('crackit_resume_filename') || '';
 
 // TTS State
 let ttsEnabled = localStorage.getItem('angel_tts_enabled') !== 'false'; // ON by default
@@ -222,6 +173,8 @@ const resetPromptBtn = document.getElementById('resetPromptBtn');
 const listenBtn = document.getElementById('listenBtn');
 const helpBtn = document.getElementById('helpBtn');
 const glassBtn = document.getElementById('glassBtn');
+const teleprompterBtn = document.getElementById('teleprompterBtn');
+const tpActionBtn = document.getElementById('tpActionBtn');
 const helpPanel = document.getElementById('helpPanel');
 const closeHelp = document.getElementById('closeHelp');
 
@@ -360,11 +313,19 @@ function init() {
   if (skipLoginBtn) skipLoginBtn.addEventListener('click', handleSkipLogin);
   if (signupLink) signupLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.open('https://crackit-ai.vercel.app/signup', '_blank');
+    if (window.electronAPI && window.electronAPI.openExternal) {
+      window.electronAPI.openExternal('https://crackit-ai.vercel.app/signup');
+    } else {
+      window.open('https://crackit-ai.vercel.app/signup', '_blank');
+    }
   });
   if (loginForgotLink) loginForgotLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.open('https://crackit-ai.vercel.app/forgot-password', '_blank');
+    if (window.electronAPI && window.electronAPI.openExternal) {
+      window.electronAPI.openExternal('https://crackit-ai.vercel.app/forgot-password');
+    } else {
+      window.open('https://crackit-ai.vercel.app/forgot-password', '_blank');
+    }
   });
 
   // Enter key on password field
@@ -424,6 +385,10 @@ async function handleLogin() {
     document.getElementById('loginScreen').style.display = 'none';
     updateCreditsUI();
     
+    // Check first-time tour
+    if (!localStorage.getItem('crackit_tour_completed')) {
+      setTimeout(startTour, 400);
+    }
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.style.display = 'block';
@@ -508,13 +473,14 @@ async function callSaasBackend(thinkingEl, type = 'text') {
     },
     body: JSON.stringify({
       question: conversationHistory[conversationHistory.length - 1].content,
-      type: type
+      type: type,
+      systemPrompt: buildMessages()[0].content
     })
   });
   
   if (res.status === 402) {
     const err = await res.json();
-    updateCard(card, `⚠️ **Insufficient Credits!**\n\nYou have ${err.credits_remaining} credits remaining.\nThis query needs ${err.credits_needed} credits.\n\n[Upgrade at crackit.app/pricing](https://crackit.app/pricing)`);
+    updateCard(card, `⚠️ **Insufficient Credits!**\n\nYou have ${err.credits_remaining} credits remaining.\nThis query needs ${err.credits_needed} credits.\n\n[🚀 Upgrade Plan at crackit-ai.vercel.app/pricing](https://crackit-ai.vercel.app/pricing)`);
     return full;
   }
   
@@ -596,6 +562,11 @@ function toggleGlassMode() {
 }
 
 glassBtn.addEventListener('click', toggleGlassMode);
+if (teleprompterBtn) teleprompterBtn.addEventListener('click', toggleTeleprompter);
+if (tpActionBtn) tpActionBtn.addEventListener('click', () => {
+  settingsPanel.style.display = 'none';
+  toggleTeleprompter();
+});
 
 // --- Teleprompter Mode ---
 let teleprompterBar = null;
@@ -706,6 +677,7 @@ function scrollTeleprompter(direction) {
 function toggleTeleprompter() {
   isTeleprompterMode = !isTeleprompterMode;
   document.body.classList.toggle('teleprompter-mode', isTeleprompterMode);
+  if (teleprompterBtn) teleprompterBtn.classList.toggle('activated', isTeleprompterMode);
 
   if (window.electronAPI && window.electronAPI.toggleTeleprompter) {
     window.electronAPI.toggleTeleprompter(isTeleprompterMode);
@@ -821,6 +793,248 @@ resetPromptBtn.addEventListener('click', () => {
   showToast('↩ Prompt reset to default!');
 });
 
+// ─── Resume Upload ───
+const resumeUploadArea = document.getElementById('resumeUploadArea');
+const resumeEmptyState = document.getElementById('resumeEmptyState');
+const resumeLoadedState = document.getElementById('resumeLoadedState');
+const resumeFilenameEl = document.getElementById('resumeFilename');
+const resumePreviewEl = document.getElementById('resumePreview');
+const removeResumeBtn = document.getElementById('removeResumeBtn');
+
+// Show loaded state if resume exists
+function updateResumeUI() {
+  if (resumeText && resumeFilename) {
+    resumeEmptyState.style.display = 'none';
+    resumeLoadedState.style.display = 'block';
+    resumeFilenameEl.textContent = resumeFilename;
+    resumePreviewEl.textContent = resumeText.substring(0, 200) + (resumeText.length > 200 ? '...' : '');
+    resumeUploadArea.style.borderColor = 'rgba(34,197,94,0.4)';
+    resumeUploadArea.style.background = 'rgba(34,197,94,0.05)';
+  } else {
+    resumeEmptyState.style.display = 'block';
+    resumeLoadedState.style.display = 'none';
+    resumeFilenameEl.textContent = '';
+    resumePreviewEl.textContent = '';
+    resumeUploadArea.style.borderColor = '';
+    resumeUploadArea.style.background = '';
+  }
+}
+updateResumeUI();
+
+if (resumeUploadArea) {
+  resumeUploadArea.addEventListener('click', async (e) => {
+    if (e.target.closest('#removeResumeBtn')) return;
+    if (!window.electronAPI?.openResumeDialog) {
+      showToast('⚠️ Resume upload only works in the Desktop App');
+      return;
+    }
+    try {
+      const filePath = await window.electronAPI.openResumeDialog();
+      if (!filePath) return;
+      showToast('⏳ Reading resume...');
+      const result = await window.electronAPI.parseResume(filePath);
+      if (result.success && result.text) {
+        resumeText = result.text;
+        resumeFilename = result.filename;
+        localStorage.setItem('crackit_resume_text', resumeText);
+        localStorage.setItem('crackit_resume_filename', resumeFilename);
+        updateResumeUI();
+        showToast('🧠 Generating personalized prompt from your resume...');
+        
+        // Auto-generate Custom Prompt from resume using AI
+        await generatePromptFromResume(resumeText);
+      } else {
+        showToast('❌ Could not read resume: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      showToast('❌ Resume upload failed: ' + err.message);
+    }
+  });
+}
+
+// Generate personalized Custom Prompt from resume text using AI + Smart Local Fallback
+async function generatePromptFromResume(resumeContent) {
+  const metaPrompt = `Analyze the following resume and generate a FIRST-PERSON interview persona prompt. The prompt should be written as if the candidate is describing themselves.
+
+RULES:
+1. Extract: Full Name, Total Years of Experience, Current/Latest Role, Companies Worked At, Primary Tech Stack, Key Projects, Certifications
+2. Write it in this EXACT format:
+
+# 🧠 [Role Title] / [Specialization] Interview Master Prompt
+
+You are **ME — [Full Name]**, a **[Role with Years] of experience**, currently attending a real technical interview.
+
+## My Background:
+- [Years] years of experience across [companies list]
+- Currently/Previously at [Latest Company] as [Role]
+- Core expertise: [primary technologies]
+
+## My Key Projects:
+- [Project 1]: [brief description with tech stack]
+- [Project 2]: [brief description with tech stack]
+- [Project 3]: [brief description with tech stack]
+
+## My Tech Stack:
+[List all technologies, frameworks, tools from resume]
+
+## My Certifications:
+[List certifications if any]
+
+## Answer Style:
+- Answer as ME in first person — "I built", "In my project at [Company]", "I used"
+- Reference MY actual projects, companies, and tech stack from above
+- Use real metrics from my experience when possible
+
+3. Keep it under 500 words
+4. If resume is for Java/Python/React/any tech — adapt accordingly. DO NOT default to .NET unless the resume says so.
+
+--- RESUME CONTENT ---
+${resumeContent.substring(0, 4000)}
+--- END RESUME ---
+
+Generate ONLY the prompt text. No explanations.`;
+
+  try {
+    let generatedPrompt = '';
+    
+    // 1. Try Local Backend (/ask/generate-resume-prompt)
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (saasToken) headers['Authorization'] = `Bearer ${saasToken}`;
+      const res = await fetch(`${BACKEND_URL}/ask/generate-resume-prompt`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ resumeText: resumeContent })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        generatedPrompt = data.prompt || '';
+      }
+    } catch (e) {
+      console.warn('Local backend prompt generation failed:', e);
+    }
+    
+    // 2. Try Prod Backend fallback
+    if (!generatedPrompt && saasToken) {
+      try {
+        const res = await fetch(`${PROD_BACKEND_URL}/ask/generate-resume-prompt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${saasToken}` },
+          body: JSON.stringify({ resumeText: resumeContent })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          generatedPrompt = data.prompt || '';
+        }
+      } catch (e) {
+        console.warn('Prod backend prompt generation failed:', e);
+      }
+    }
+    
+    // 3. Fallback to Groq API
+    if (!generatedPrompt && groqKey) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: metaPrompt }],
+            max_tokens: 1500,
+            temperature: 0.3
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          generatedPrompt = data.choices?.[0]?.message?.content || '';
+        }
+      } catch (e) { /* ignore */ }
+    }
+    
+    // 4. Fallback to Gemini API
+    if (!generatedPrompt && geminiKey) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: metaPrompt }] }] })
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          generatedPrompt = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        }
+      } catch (e) { /* ignore */ }
+    }
+    
+    // 5. Guaranteed Smart Local Parser Fallback (No network / No API key needed)
+    if (!generatedPrompt) {
+      generatedPrompt = buildLocalResumePrompt(resumeContent);
+    }
+    
+    if (generatedPrompt) {
+      SYSTEM_PROMPT = generatedPrompt;
+      localStorage.setItem('angel_custom_prompt', generatedPrompt);
+      if (customPromptInput) customPromptInput.value = generatedPrompt;
+      showToast('✅ Custom Prompt auto-generated from your resume! 🎯');
+    }
+  } catch (err) {
+    console.error('Prompt generation error:', err);
+    // Instant fallback
+    const fallbackPrompt = buildLocalResumePrompt(resumeContent);
+    SYSTEM_PROMPT = fallbackPrompt;
+    localStorage.setItem('angel_custom_prompt', fallbackPrompt);
+    if (customPromptInput) customPromptInput.value = fallbackPrompt;
+    showToast('✅ Custom Prompt created from your resume! 🎯');
+  }
+}
+
+// Smart Local Fallback Parser — Extracts key info directly from text without LLM
+function buildLocalResumePrompt(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const name = lines[0] || 'Candidate';
+  
+  // Extract experience years if mentioned
+  const expMatch = text.match(/(\d+)\+?\s*(?:years?|yrs?)/i);
+  const expYears = expMatch ? `${expMatch[1]}+ years` : 'experienced';
+  
+  // Extract email/contact lines to skip
+  const summarySnippet = lines.slice(1, 15).filter(l => !l.includes('@') && !l.match(/^\+?\d[\d\s-]{8,}/)).slice(0, 4).join(' ');
+
+  return `# 🧠 Personalized Interview Master Prompt
+
+You are **ME — ${name}**, a technical professional with **${expYears} of experience**, currently attending a real technical interview.
+
+## My Background & Summary:
+${summarySnippet || 'Experienced software professional with demonstrated history of delivery.'}
+
+## My Core Skills & Resume Highlights:
+${text.substring(0, 1500)}
+
+## Answer Style:
+- Answer as ME in first person ("I built", "In my project", "I designed")
+- Directly reference MY real experience, skills, and projects from the resume details above
+- Give concise, senior-level explanations with real technical trade-offs`;
+}
+
+if (removeResumeBtn) {
+  removeResumeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    resumeText = '';
+    resumeFilename = '';
+    localStorage.removeItem('crackit_resume_text');
+    localStorage.removeItem('crackit_resume_filename');
+    // Reset prompt back to default
+    SYSTEM_PROMPT = DEFAULT_PROMPT;
+    localStorage.removeItem('angel_custom_prompt');
+    if (customPromptInput) customPromptInput.value = DEFAULT_PROMPT;
+    updateResumeUI();
+    showToast('🗑️ Resume removed — Prompt reset to default');
+  });
+}
+
 // ─── Theme Switching ───
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -920,6 +1134,14 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Tour modal keyboard controls
+  if (tourModal && tourModal.style.display !== 'none') {
+    if (e.key === 'Escape') { finishTour(); return; }
+    if (e.key === 'ArrowRight' || e.key === 'Enter') { nextTourStep(); return; }
+    if (e.key === 'ArrowLeft') { prevTourStep(); return; }
+    return;
+  }
+
   // Escape: Close all panels
   if (e.key === 'Escape') {
     // Exit teleprompter first
@@ -964,6 +1186,13 @@ document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
     e.preventDefault();
     toggleGlassMode();
+    return;
+  }
+
+  // Ctrl+Shift+S: Capture screenshot OCR
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    screenshotBtn.click();
     return;
   }
 
@@ -1533,7 +1762,7 @@ async function askCrackit(question, { fromSpeech = false, _isRetry = false } = {
   // ═══ SaaS Mode: Use Backend ═══
   if (isSaasMode) {
     if (saasCredits < 1) {
-      showError('⚠️ No credits remaining! Please upgrade at crackit.app/pricing');
+      showError('⚠️ No credits remaining! Please upgrade at https://crackit-ai.vercel.app/pricing');
       return;
     }
     
@@ -1757,7 +1986,13 @@ function buildMessages() {
   // Strip markdown from custom prompt so Llama understands it clearly
   const cleanPrompt = stripMarkdown(SYSTEM_PROMPT);
 
-  const enforced = cleanPrompt + `\n\n` +
+  // Inject resume context if available
+  let resumeContext = '';
+  if (resumeText) {
+    resumeContext = `\n\n--- MY RESUME / BACKGROUND ---\n${resumeText.substring(0, 3000)}\n--- END RESUME ---\n\nIMPORTANT: Use the above resume details to personalize ALL answers. Reference MY actual companies, projects, technologies, certifications, and years of experience from the resume. Answer as if YOU are this person in a real interview.`;
+  }
+
+  const enforced = cleanPrompt + resumeContext + `\n\n` +
     `CRITICAL — YOU MUST FOLLOW THIS EXACT ANSWER STYLE:
 
 1. FIRST PERSON ALWAYS: "I built", "In my project", "I used" — you ARE the candidate
@@ -1790,58 +2025,55 @@ function buildMessages() {
 
   const msgs = [{ role: 'system', content: enforced }];
 
-  // Few-shot: ONE compact example to teach format (saves ~10K tokens vs 4 examples)
+  // Few-shot: Method Overloading example demonstrating exact 6-section format & comparison table
   {
     msgs.push(
-      { role: 'user', content: 'What is dependency injection?' },
+      { role: 'user', content: 'What is method overloading?' },
       {
         role: 'assistant', content: `🎯 Simple Interview Answer (30 Seconds)
 
-Dependency Injection means instead of a class creating its own dependencies, they're passed in from outside — usually through the constructor. In my project, all services like ClaimsService, NotificationService were registered in DI container and injected via constructor — made unit testing easy with Moq, reduced tight coupling across 40+ services. Trade-off: too many constructor parameters = service doing too much — I refactor when it exceeds 4.
+Method Overloading is when multiple methods in the same class have the same name but different parameters. In my project, I overloaded a method in the NotificationService to send notifications via SMS, Email, or Push by varying parameters. Trade-off: too many overloads can confuse — I limit to 3-4 overloads max.
 
 🟢 Real Project Usage
 
-In our Mobile Device Protection Platform, ClaimsService needed NotificationService, PolicyRepository, and ILogger. All injected via constructor:
+In the Mobile Device Protection Platform, the NotificationService had overloaded methods for different notification channels:
 
 \`\`\`csharp
-public class ClaimsService
+public class NotificationService
 {
-    private readonly INotificationService _notify;
-    private readonly IPolicyRepository _repo;
-    public ClaimsService(INotificationService notify, IPolicyRepository repo)
-    {
-        _notify = notify;
-        _repo = repo;
-    }
+    public void SendNotification(string message, string email) { /* Email logic */ }
+    public void SendNotification(string message, string phoneNumber, bool isSMS) { /* SMS logic */ }
+    public void SendNotification(string message, string deviceToken, bool isPush) { /* Push logic */ }
 }
-// Startup.cs
-services.AddScoped<IClaimsService, ClaimsService>();
 \`\`\`
 
-40+ services registered — switching from SQL to Cosmos DB required changing one line in DI registration, zero service code changes.
+Handled 10,000+ user notifications monthly with 99.8% reliability.
 
 🔴 Interview Point / Must Remember
 
-• Constructor Injection = most common and recommended
-• Scoped vs Transient vs Singleton — wrong lifetime = memory leaks or stale data
-• 4+ constructor params = class has too many responsibilities → refactor
-• DI enables unit testing — inject mock instead of real service
+• Overloading → Compile-time polymorphism (compiler picks method by parameters)
+• Overloading improves code readability by using same method name for similar actions
+• Too many overloads can lead to ambiguity — keep it clear and intuitive
+
+| Concept | Binding | Explanation |
+|---|---|---|
+| Overloading | Compile-time | Compiler chooses based on parameter signature |
+| Overriding | Runtime | Object type at runtime determines method execution |
 
 🔵 Definition / Main Concept
 
-DI is an IoC pattern where dependencies are provided externally rather than created internally, enabling loose coupling and testability.
+Method Overloading allows defining multiple methods with the same name but different parameter lists, improving code organization and readability.
 
 🟠 Advantages / Benefits
 
-• Loose coupling — swap implementations without code changes
-• Unit testing with Moq — inject mocks easily
-• Single registration change = system-wide swap
-• Follows SOLID principles (D = Dependency Inversion)
+• Code clarity by grouping similar operations
+• Reduced method names — easier to remember and use
+• Flexibility in method usage based on parameter needs
 
 ✅ Best Practice
 
-• Use constructor injection over property/method injection
-• Register as Scoped for request-based services, Singleton for stateless utilities` }
+• Ensure each overload has a distinct parameter signature
+• Avoid excessive overloads to prevent confusion and maintain clarity` }
     );
   }
 
@@ -2023,52 +2255,168 @@ function updateCard(card, text) {
 
 // ─── Markdown Renderer ───
 function renderMarkdown(text) {
+  if (!text) return '';
   // Normalize line endings first
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // Step 1: Extract code blocks BEFORE escapeHtml (preserve raw code)
+  // Step 1: Extract code blocks BEFORE HTML escaping
   const codeBlocks = [];
   text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
     const idx = codeBlocks.length;
     codeBlocks.push({ lang: lang.trim(), code: code.trim() });
-    return `%%CODEBLOCK_${idx}%%`;
+    return `\n\n%%CODEBLOCK_${idx}%%\n\n`;
   });
 
-  // Step 2: Escape HTML for the rest
-  let html = escapeHtml(text);
+  // Step 2: Extract and parse Markdown Tables BEFORE HTML escaping
+  const tables = [];
+  const tableBlockRegex = /((?:^\|[^\n]+\|\n?)+)/gm;
+  text = text.replace(tableBlockRegex, (match) => {
+    const lines = match.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return match;
+    const headerCells = lines[0].split('|').slice(1, -1).map(c => c.trim());
+    const dataLines = lines.slice(1).filter(l => !l.replace(/[\s|:-]/g, '').length === 0 && !l.includes('---'));
+    
+    let tableHtml = '<div class="md-table-wrap"><table class="md-table"><thead><tr>';
+    headerCells.forEach(h => { tableHtml += `<th>${escapeHtml(h)}</th>`; });
+    tableHtml += '</tr></thead><tbody>';
+    
+    dataLines.forEach(row => {
+      const cells = row.split('|').slice(1, -1).map(c => c.trim());
+      if (cells.length > 0 && !cells.every(c => c.replace(/[-:]/g, '') === '')) {
+        tableHtml += '<tr>';
+        cells.forEach(cell => { tableHtml += `<td>${escapeHtml(cell)}</td>`; });
+        tableHtml += '</tr>';
+      }
+    });
+    tableHtml += '</tbody></table></div>';
+    const tIdx = tables.length;
+    tables.push(tableHtml);
+    return `\n\n%%TABLE_${tIdx}%%\n\n`;
+  });
 
-  // Step 3: Re-insert code blocks as proper HTML
-  html = html.replace(/%%CODEBLOCK_(\d+)%%/g, (match, idx) => {
+  // Helper for inline styles
+  function formatInline(str) {
+    let s = escapeHtml(str);
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    s = s.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" class="md-link" target="_blank" onclick="openExternalLink(event, \'$2\')">$1 ↗</a>');
+    return s;
+  }
+
+  // Step 3: Split text into logical paragraph blocks
+  const rawBlocks = text.split(/\n{2,}/);
+  const processedBlocks = [];
+
+  for (let block of rawBlocks) {
+    block = block.trim();
+    if (!block) continue;
+
+    if (block.startsWith('%%CODEBLOCK_')) {
+      processedBlocks.push(block);
+      continue;
+    }
+
+    if (block.startsWith('%%TABLE_')) {
+      processedBlocks.push(block);
+      continue;
+    }
+
+    // Section Badge only line
+    const badgeExact = block.match(/^(🎯|🟢|🔴|🔵|🟠|✅)\s*(.+)$/);
+    if (badgeExact && !block.includes('\n')) {
+      const emoji = badgeExact[1];
+      const title = badgeExact[2];
+      let bClass = 'section-target';
+      if (emoji === '🟢') bClass = 'section-green';
+      else if (emoji === '🔴') bClass = 'section-red';
+      else if (emoji === '🔵') bClass = 'section-blue';
+      else if (emoji === '🟠') bClass = 'section-orange';
+      else if (emoji === '✅') bClass = 'section-check';
+      processedBlocks.push(`<div class="section-badge ${bClass}">${emoji} ${escapeHtml(title)}</div>`);
+      continue;
+    }
+
+    // Markdown Headers
+    if (block.startsWith('### ')) {
+      processedBlocks.push(`<div class="md-h3">${formatInline(block.slice(4))}</div>`);
+      continue;
+    }
+    if (block.startsWith('## ')) {
+      processedBlocks.push(`<div class="md-h2">${formatInline(block.slice(3))}</div>`);
+      continue;
+    }
+
+    // List items block
+    const blockLines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    const isList = blockLines.every(l => /^[-*•\d.]\s+/.test(l));
+    if (isList) {
+      let listHtml = '<div class="md-list-group">';
+      blockLines.forEach(l => {
+        const bulletMatch = l.match(/^[-*•]\s+(.*)$/);
+        const numMatch = l.match(/^(\d+\.)\s+(.*)$/);
+        if (bulletMatch) {
+          listHtml += `<div class="md-list-item"><span class="md-list-bullet">•</span><span>${formatInline(bulletMatch[1])}</span></div>`;
+        } else if (numMatch) {
+          listHtml += `<div class="md-list-item"><span class="md-list-num">${numMatch[1]}</span><span>${formatInline(numMatch[2])}</span></div>`;
+        } else {
+          listHtml += `<div class="md-list-item">${formatInline(l)}</div>`;
+        }
+      });
+      listHtml += '</div>';
+      processedBlocks.push(listHtml);
+      continue;
+    }
+
+    // Regular paragraph (join single accidental soft-wrap newlines so words flow smoothly)
+    let pContent = block;
+    let badgeHtml = '';
+    const badgeAtTop = pContent.match(/^(🎯|🟢|🔴|🔵|🟠|✅)\s*([^\n]+)\n([\s\S]*)$/);
+    if (badgeAtTop) {
+      const emoji = badgeAtTop[1];
+      const title = badgeAtTop[2];
+      pContent = badgeAtTop[3];
+      let bClass = 'section-target';
+      if (emoji === '🟢') bClass = 'section-green';
+      else if (emoji === '🔴') bClass = 'section-red';
+      else if (emoji === '🔵') bClass = 'section-blue';
+      else if (emoji === '🟠') bClass = 'section-orange';
+      else if (emoji === '✅') bClass = 'section-check';
+      badgeHtml = `<div class="section-badge ${bClass}">${emoji} ${escapeHtml(title)}</div>`;
+    }
+
+    const smoothP = pContent.split('\n').map(l => l.trim()).filter(Boolean).join(' ');
+    processedBlocks.push(`${badgeHtml}<p class="md-p">${formatInline(smoothP)}</p>`);
+  }
+
+  let finalHtml = processedBlocks.join('');
+
+  // Step 4: Re-insert code blocks
+  finalHtml = finalHtml.replace(/%%CODEBLOCK_(\d+)%%/g, (match, idx) => {
     const { lang, code } = codeBlocks[parseInt(idx)];
     const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
     const escaped = escapeHtml(code);
-    return `<div class="code-block">${langLabel}<button class="code-copy-btn" onclick="copyCodeBlock(this)">📋</button><pre><code>${escaped}</code></pre></div>`;
+    return `<div class="code-block">${langLabel}<button class="code-copy-btn" onclick="copyCodeBlock(this)">📋 Copy</button><pre><code>${escaped}</code></pre></div>`;
   });
 
-  // Bold: **text** → <strong>
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Step 5: Re-insert tables
+  finalHtml = finalHtml.replace(/%%TABLE_(\d+)%%/g, (match, idx) => tables[parseInt(idx)] || '');
 
-  // Italic: *text* → <em>
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-
-  // Inline code: `text` → <code>
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Headers: ### text → styled div
-  html = html.replace(/^### (.+)$/gm, '<div class="md-h3">$1</div>');
-  html = html.replace(/^## (.+)$/gm, '<div class="md-h2">$1</div>');
-
-  // Numbered lists: 1. text
-  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="md-list-item"><span class="md-list-num">$1.</span> $2</div>');
-
-  // Bullet lists: - text or • text
-  html = html.replace(/^[-•]\s+(.+)$/gm, '<div class="md-list-item"><span class="md-list-bullet">•</span> $1</div>');
-
-  // Horizontal rules
-  html = html.replace(/^---$/gm, '<hr class="md-hr">');
-
-  return html;
+  return finalHtml;
 }
+
+function openExternalLink(e, url) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if (window.electronAPI && window.electronAPI.openExternal) {
+    window.electronAPI.openExternal(url);
+  } else {
+    window.open(url, '_blank');
+  }
+}
+window.openExternalLink = openExternalLink;
 
 function copyCodeBlock(btn) {
   const code = btn.closest('.code-block').querySelector('code').textContent;
@@ -2941,6 +3289,121 @@ async function callOllama(thinkingEl) {
     throw new Error('Ollama error ' + response.status + ': ' + errText);
   }
   return streamOpenAIFormat(response, thinkingEl, 'Ollama');
+}
+
+// ─── Interactive Start Tour System ───
+const TOUR_STEPS = [
+  {
+    icon: '🎙️',
+    title: 'Voice-to-Answer',
+    desc: 'Press Spacebar once to start listening, speak your question, and press Spacebar again to stop and receive an instant expert answer!',
+    hotkey: 'SPACEBAR or CTRL+M'
+  },
+  {
+    icon: '📸',
+    title: 'Screen Question OCR',
+    desc: 'Capture any coding problem, MCQ, or architecture diagram on your screen. Crack It automatically extracts the text and solves it in real time!',
+    hotkey: 'CTRL+SHIFT+S or Camera Icon'
+  },
+  {
+    icon: '📺',
+    title: 'Teleprompter Mode',
+    desc: 'Transforms Crack It into a slim, transparent ribbon right below your webcam. Read answers effortlessly while maintaining eye contact with the interviewer!',
+    hotkey: 'CTRL+P or TV Icon'
+  },
+  {
+    icon: '📄',
+    title: 'Resume Personalization',
+    desc: 'Upload your PDF resume in Settings. Crack It automatically customizes all answers using your real projects, skills, companies, and experience!',
+    hotkey: '⚙️ Settings → Resume Upload'
+  },
+  {
+    icon: '🛡️',
+    title: 'Screen Share Invisibility',
+    desc: 'Crack It uses hardware-level window protection. It is completely invisible to Zoom, MS Teams, Google Meet, and screen sharing tools!',
+    hotkey: 'Always Active + Toggle Hide'
+  }
+];
+
+let currentTourIndex = 0;
+const tourModal = document.getElementById('tourModal');
+const tourStepBadge = document.getElementById('tourStepBadge');
+const tourIcon = document.getElementById('tourIcon');
+const tourTitle = document.getElementById('tourTitle');
+const tourDesc = document.getElementById('tourDesc');
+const tourHotkey = document.getElementById('tourHotkey');
+const tourDots = document.getElementById('tourDots');
+const tourPrevBtn = document.getElementById('tourPrevBtn');
+const tourNextBtn = document.getElementById('tourNextBtn');
+const tourCloseBtn = document.getElementById('tourCloseBtn');
+const startTourBtn = document.getElementById('startTourBtn');
+const welcomeTourLink = document.getElementById('welcomeTourLink');
+
+function startTour() {
+  currentTourIndex = 0;
+  if (tourModal) tourModal.style.display = 'flex';
+  if (settingsPanel) settingsPanel.style.display = 'none';
+  if (helpPanel) helpPanel.style.display = 'none';
+  renderTourStep();
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[currentTourIndex];
+  if (!step) return;
+
+  if (tourStepBadge) tourStepBadge.textContent = `Step ${currentTourIndex + 1} of ${TOUR_STEPS.length}`;
+  if (tourIcon) tourIcon.textContent = step.icon;
+  if (tourTitle) tourTitle.textContent = step.title;
+  if (tourDesc) tourDesc.textContent = step.desc;
+  if (tourHotkey) tourHotkey.textContent = step.hotkey;
+
+  // Render dots
+  if (tourDots) {
+    tourDots.innerHTML = TOUR_STEPS.map((_, i) => 
+      `<span class="tour-dot ${i === currentTourIndex ? 'active' : ''}"></span>`
+    ).join('');
+  }
+
+  // Button labels & visibility
+  if (tourPrevBtn) {
+    tourPrevBtn.style.display = currentTourIndex > 0 ? 'inline-block' : 'none';
+  }
+  if (tourNextBtn) {
+    tourNextBtn.textContent = currentTourIndex === TOUR_STEPS.length - 1 ? 'Get Started 🚀' : 'Next ➔';
+  }
+}
+
+function nextTourStep() {
+  if (currentTourIndex < TOUR_STEPS.length - 1) {
+    currentTourIndex++;
+    renderTourStep();
+  } else {
+    finishTour();
+  }
+}
+
+function prevTourStep() {
+  if (currentTourIndex > 0) {
+    currentTourIndex--;
+    renderTourStep();
+  }
+}
+
+function finishTour() {
+  if (tourModal) tourModal.style.display = 'none';
+  localStorage.setItem('crackit_tour_completed', 'true');
+  showToast('🎉 You are ready to crack your interview!');
+}
+
+if (tourNextBtn) tourNextBtn.addEventListener('click', nextTourStep);
+if (tourPrevBtn) tourPrevBtn.addEventListener('click', prevTourStep);
+if (tourCloseBtn) tourCloseBtn.addEventListener('click', finishTour);
+if (startTourBtn) startTourBtn.addEventListener('click', startTour);
+if (welcomeTourLink) {
+  welcomeTourLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    startTour();
+  });
 }
 
 // ─── Initialize New Features ───

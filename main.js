@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, screen, desktopCapturer, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, desktopCapturer, globalShortcut, dialog, shell } = require('electron');
 const path = require('path');
 const Tesseract = require('tesseract.js');
+const pdfParse = require('pdf-parse');
 
 // Fix Windows GPU cache errors (harmless but noisy)
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
@@ -269,4 +270,42 @@ ipcMain.handle('toggle-teleprompter', (_, enable) => {
     mainWindow.setBounds(b);
     savedNormalBounds = null;
   }
+});
+
+// IPC: Open file dialog for resume PDF
+ipcMain.handle('open-resume-dialog', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select your Resume (PDF)',
+    filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    properties: ['openFile']
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  return result.filePaths[0];
+});
+
+// IPC: Parse resume PDF and extract text
+ipcMain.handle('parse-resume', async (_, filePath) => {
+  try {
+    const dataBuffer = fs.readFileSync(filePath);
+    const data = await pdfParse(dataBuffer);
+    const text = data.text?.trim() || '';
+    const filename = path.basename(filePath);
+    return { success: true, text, filename, pages: data.numpages };
+  } catch (e) {
+    console.error('Resume parse error:', e);
+    return { success: false, error: e.message };
+  }
+});
+
+// IPC: Open external URL in default system browser
+ipcMain.handle('open-external', async (_, url) => {
+  try {
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+      await shell.openExternal(url);
+      return true;
+    }
+  } catch (e) {
+    console.error('Failed to open external URL:', e);
+  }
+  return false;
 });

@@ -49,19 +49,34 @@ export default function Navbar() {
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <>
+              <div className="flex items-center gap-3">
                 {isAdmin && (
-                  <Link href="/admin" className="text-[#f59e0b] hover:text-yellow-300 transition font-semibold flex items-center gap-1">🛡️ Admin</Link>
+                  <Link href="/admin" className="text-[#f59e0b] hover:text-yellow-300 transition text-xs font-semibold flex items-center gap-1 bg-yellow-500/10 hover:bg-yellow-500/20 px-2.5 py-1.5 rounded-lg border border-yellow-500/20">
+                    🛡️ Admin
+                  </Link>
                 )}
-                <Link href="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>
-                <button onClick={handleLogout} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl font-medium transition">
+                <Link href="/dashboard" className="text-gray-300 hover:text-white transition text-sm font-medium px-2 py-1">
+                  Dashboard
+                </Link>
+
+                {/* Modern User Pill with Avatar */}
+                <div className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 px-2.5 py-1 rounded-xl transition-all" title={user.email}>
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#7c3aed] to-[#0ea5e9] flex items-center justify-center text-white text-[11px] font-bold shadow-sm select-none">
+                    {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span className="text-xs text-gray-300 font-medium max-w-[190px] truncate">
+                    {user.email}
+                  </span>
+                </div>
+
+                <button onClick={handleLogout} className="bg-white/10 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30 border border-transparent text-gray-300 px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer">
                   Logout
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <Link href="/login" className="text-gray-300 hover:text-white transition">Login</Link>
-                <Link href="/signup" className="bg-[#7c3aed] hover:bg-purple-600 text-white px-4 py-2 rounded-xl font-medium transition">
+                <Link href="/signup" className="bg-[#7c3aed] hover:bg-purple-600 text-white px-4 py-2 rounded-xl font-medium transition cursor-pointer">
                   Sign Up
                 </Link>
               </>
@@ -89,11 +104,15 @@ export default function Navbar() {
             <hr className="border-white/10" />
             {user ? (
               <>
+                <div className="flex items-center gap-2 text-xs text-gray-300 py-1 bg-white/5 px-3 rounded-lg">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span className="truncate">{user.email}</span>
+                </div>
                 {isAdmin && (
                   <Link href="/admin" onClick={() => setMenuOpen(false)} className="block text-[#f59e0b] hover:text-yellow-300 transition py-2 font-semibold">🛡️ Admin</Link>
                 )}
                 <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-gray-300 hover:text-white transition py-2">Dashboard</Link>
-                <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left text-red-400 hover:text-red-300 transition py-2">Logout</button>
+                <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left text-red-400 hover:text-red-300 transition py-2 cursor-pointer">Logout</button>
               </>
             ) : (
               <>

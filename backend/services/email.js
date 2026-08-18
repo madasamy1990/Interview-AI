@@ -95,12 +95,12 @@ async function sendWelcomeEmail(toEmail, displayName = 'Developer') {
           </ul>
 
           <div class="btn-wrapper">
-            <a href="http://localhost:3000/dashboard" class="btn">Launch Dashboard →</a>
+            <a href="${process.env.APP_URL || 'https://crackit-ai.vercel.app'}/dashboard" class="btn">Launch Dashboard →</a>
           </div>
         </div>
         <div class="footer">
           © 2026 Crack It AI. All rights reserved.<br>
-          Need help? Reply directly to this email or visit <a href="http://localhost:3000">crackit.app</a>.
+          Need help? Reply directly to this email or visit <a href="${process.env.APP_URL || 'https://crackit-ai.vercel.app'}">crackit-ai.vercel.app</a>.
         </div>
       </div>
     </body>

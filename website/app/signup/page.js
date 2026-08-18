@@ -32,7 +32,8 @@ export default function Signup() {
 
     try {
       // Call backend API (uses Admin API — NO rate limit!)
-      const res = await fetch('http://localhost:3001/auth/signup', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://crack-it-backend.onrender.com';
+      const res = await fetch(`${backendUrl}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, displayName: name })

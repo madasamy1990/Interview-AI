@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "openai": "^4.67.0",
+    "pdf-parse": "^1.1.1",
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {

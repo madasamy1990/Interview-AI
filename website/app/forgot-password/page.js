@@ -18,7 +18,7 @@ export default function ForgotPassword() {
     try {
       const redirectUrl = typeof window !== 'undefined' 
         ? `${window.location.origin}/reset-password` 
-        : 'http://localhost:3000/reset-password';
+        : 'https://crackit-ai.vercel.app/reset-password';
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,

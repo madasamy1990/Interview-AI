@@ -1,19 +1,10 @@
 import Link from 'next/link';
+import AppDemoSimulator from '../components/AppDemoSimulator';
 
 const testimonials = [
   { name: 'Ravi Kumar', role: 'Senior .NET Developer', company: 'Got ₹32L offer at Infosys', quote: 'Crack It saved my interview! The teleprompter feature let me maintain eye contact while reading AI-generated answers. Cleared 4 rounds effortlessly.', rating: 5 },
   { name: 'Priya Sharma', role: 'Java Full Stack', company: 'Cleared Amazon SDE-2', quote: 'The voice-to-answer feature is incredible. Just whispered my question and got a perfect answer in 2 seconds. Completely invisible to the interviewer.', rating: 5 },
   { name: 'Arjun Patel', role: 'React Developer', company: 'Joined Google via TCS', quote: 'Best investment I made. The 300ms response time means I get answers before I even finish thinking about them. 10/10 recommend!', rating: 5 },
-];
-
-const comparisons = [
-  { feature: 'Screen Share Safe', crackit: true, finalround: false, cluely: 'partial', ljs: true },
-  { feature: 'Price (Monthly)', crackit: '₹1,499', finalround: '₹12,500', cluely: '₹8,300', ljs: '₹4,400' },
-  { feature: 'Teleprompter Mode', crackit: true, finalround: false, cluely: false, ljs: false },
-  { feature: 'UPI/GPay Payment', crackit: true, finalround: false, cluely: false, ljs: true },
-  { feature: 'Response Speed', crackit: '300ms', finalround: '2-3s', cluely: '1-2s', ljs: '1s' },
-  { feature: 'Free Credits', crackit: '15', finalround: '0', cluely: '0', ljs: '15' },
-  { feature: 'Premium Themes', crackit: '8', finalround: '1', cluely: '2', ljs: '3' },
 ];
 
 export default function Home() {
@@ -40,9 +31,9 @@ export default function Home() {
             <Link href="/signup" className="bg-[#7c3aed] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all glow-purple hover:bg-purple-600">
               Start Free — 15 Credits
             </Link>
-            <Link href="/pricing" className="bg-transparent border border-white/20 hover:border-white/40 glass-card text-white px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2">
-              ▶ Watch Demo
-            </Link>
+            <a href="#demo-preview" className="bg-transparent border border-white/20 hover:border-white/40 glass-card text-white px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+              ▶ Watch Live Demo
+            </a>
           </div>
           
           <div className="flex flex-wrap justify-center gap-4 sm:gap-8 text-sm md:text-base text-gray-400 font-medium max-w-4xl mx-auto bg-white/5 py-4 px-6 rounded-2xl border border-white/10 glass-card">
@@ -55,11 +46,8 @@ export default function Home() {
             <span>⚡ 300ms Response</span>
           </div>
 
-          <div className="mt-20 max-w-5xl mx-auto relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#7c3aed] to-[#0ea5e9] rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-pulse-glow"></div>
-            <div className="relative aspect-video glass-card rounded-2xl flex items-center justify-center border border-[#7c3aed]/30 shadow-[0_0_30px_rgba(124,58,237,0.2)]">
-              <span className="text-gray-500 font-medium text-lg">App Screenshot Placeholder</span>
-            </div>
+          <div id="demo-preview" className="mt-16 sm:mt-20 scroll-mt-24">
+            <AppDemoSimulator />
           </div>
         </div>
       </section>
@@ -130,55 +118,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 5: Competitor Comparison */}
-      <section className="py-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 gradient-text">Why We&apos;re #1</h2>
-          <div className="overflow-x-auto glass-card rounded-2xl">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="p-6 font-semibold text-gray-300 w-1/3">Feature</th>
-                  <th className="p-6 font-bold text-[#a78bfa] bg-[#7c3aed]/10 text-center w-1/6">Crack It</th>
-                  <th className="p-6 font-semibold text-gray-400 text-center w-1/6">Final Round</th>
-                  <th className="p-6 font-semibold text-gray-400 text-center w-1/6">Cluely</th>
-                  <th className="p-6 font-semibold text-gray-400 text-center w-1/6">LazyJobSeeker</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisons.map((c, i) => (
-                  <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                    <td className="p-6 text-gray-300 font-medium">{c.feature}</td>
-                    <td className="p-6 text-center font-bold text-white bg-[#7c3aed]/10 border-x border-[#7c3aed]/20">
-                      {c.crackit === true ? '✅' : c.crackit === false ? '❌' : c.crackit === 'partial' ? '⚠️' : c.crackit}
-                    </td>
-                    <td className="p-6 text-center text-gray-500">
-                      {c.finalround === true ? '✅' : c.finalround === false ? '❌' : c.finalround === 'partial' ? '⚠️' : c.finalround}
-                    </td>
-                    <td className="p-6 text-center text-gray-500">
-                      {c.cluely === true ? '✅' : c.cluely === false ? '❌' : c.cluely === 'partial' ? '⚠️' : c.cluely}
-                    </td>
-                    <td className="p-6 text-center text-gray-500">
-                      {c.ljs === true ? '✅' : c.ljs === false ? '❌' : c.ljs === 'partial' ? '⚠️' : c.ljs}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 6: Pricing Preview */}
+      {/* Section 5: Pricing Preview */}
       <section className="py-24 bg-white/[0.02]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-16 gradient-text">Simple Pricing</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 text-left">
             {[
-              { name: 'Free 🚀', price: '₹0', credits: '15cr' },
-              { name: 'Basic ⚡', price: '₹2499', credits: '500cr' },
-              { name: 'Pro 🔥', price: '₹4999', credits: '1000cr', popular: true },
-              { name: 'Ultimate 💎', price: '₹7999', credits: '2000cr' },
+              { name: 'Free 🚀', price: '₹0', credits: '15 Credits' },
+              { name: 'Basic ⚡', price: '₹10', credits: '500 Credits' },
+              { name: 'Pro 🔥', price: '₹9,999', credits: '1,000 Credits', popular: true },
+              { name: 'Ultimate 💎', price: '₹14,999', credits: '2,000 Credits' },
             ].map((plan, i) => (
               <div key={i} className={`glass-card p-8 rounded-2xl border ${plan.popular ? 'border-[#7c3aed] glow-purple' : 'border-white/5'} flex flex-col relative overflow-hidden`}>
                 {plan.popular && (
