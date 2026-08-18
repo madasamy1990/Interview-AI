@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
-const ADMIN_EMAILS = ['madasamynagarajan1990@gmail.com'];
+const ADMIN_EMAILS = ['madasamynagarajan1990@gmail.com', 'madasamy1990@gmail.com'];
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://interview-ai-fucx.onrender.com';
 
 export default function AdminDashboard() {
@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({ totalUsers: 0, totalPayments: 0, totalRevenue: 0, totalCreditsIssued: 0, paidUsers: 0, freeUsers: 0 });
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +26,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session || !ADMIN_EMAILS.includes(session.user.email)) {
+      const userEmail = (session?.user?.email || '').toLowerCase().trim();
+      const isAdmin = ADMIN_EMAILS.some(e => e.toLowerCase().trim() === userEmail);
+      if (!session || !isAdmin) {
         router.push('/login');
         return;
       }
@@ -46,7 +48,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/stats`, { headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) setStats(data);
+      if (res.ok && data) setStats(data);
     } catch (err) { console.error('Stats error:', err); }
   }, [authHeaders]);
 
@@ -54,7 +56,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/users`, { headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) setUsers(data.users || []);
+      if (res.ok && data.users) setUsers(data.users);
     } catch (err) { console.error('Users error:', err); }
   }, [authHeaders]);
 
@@ -62,7 +64,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/payments`, { headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) setPayments(data.payments || []);
+      if (res.ok && data.payments) setPayments(data.payments);
     } catch (err) { console.error('Payments error:', err); }
   }, [authHeaders]);
 

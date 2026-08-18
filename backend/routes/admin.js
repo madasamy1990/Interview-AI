@@ -6,12 +6,15 @@ const router = express.Router();
 
 // Admin emails that are allowed to access the admin panel
 const ADMIN_EMAILS = [
-  'madasamynagarajan1990@gmail.com'
+  'madasamynagarajan1990@gmail.com',
+  'madasamy1990@gmail.com'
 ];
 
 // Admin-only middleware
 const adminOnly = (req, res, next) => {
-  if (!req.user || !ADMIN_EMAILS.includes(req.user.email)) {
+  const userEmail = (req.user?.email || '').toLowerCase().trim();
+  const isAdmin = ADMIN_EMAILS.some(e => e.toLowerCase().trim() === userEmail);
+  if (!req.user || !isAdmin) {
     return res.status(403).json({ error: 'Forbidden', message: 'Admin access only' });
   }
   next();
