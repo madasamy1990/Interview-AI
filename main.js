@@ -60,10 +60,10 @@ function showStealthToast() {
     toastWindow.setAlwaysOnTop(true, 'screen-saver', 2);
     toastWindow.loadFile('toast.html');
 
-    // Auto close after 3 seconds
+    // Auto close after 7 seconds
     toastTimeout = setTimeout(() => {
       closeStealthToast();
-    }, 3000);
+    }, 7500);
 
     toastWindow.on('closed', () => {
       toastWindow = null;
