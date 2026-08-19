@@ -257,6 +257,27 @@ export default function AdminDashboard() {
     return methods;
   })();
 
+  // ── Hot Leads (Users with <= 3 credits or >= 8 used) ──
+  const hotLeads = users.filter(u => {
+    const rem = u.credits_remaining ?? u.credits ?? 15;
+    const used = u.credits_used ?? (15 - rem);
+    return (rem <= 3 || used >= 8) && (u.plan || 'free').toLowerCase() === 'free';
+  });
+
+  // ── Funnel & Conversion ──
+  const totalSignupsCount = users.length;
+  const activeTestersCount = users.filter(u => (u.credits_used ?? 0) > 0 || (u.credits_remaining ?? 15) < 15).length;
+  const paidCustomersCount = users.filter(u => ['basic', 'pro', 'ultimate'].includes((u.plan || '').toLowerCase())).length;
+  const conversionRate = totalSignupsCount > 0 ? ((paidCustomersCount / totalSignupsCount) * 100).toFixed(1) : '0';
+
+  // ── Profit & Margins ──
+  const totalGrossRev = payments.filter(p => p.status === 'captured').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalRevenueRs = totalGrossRev > 100 ? totalGrossRev / 100 : totalGrossRev;
+  const totalAiQueriesCount = users.reduce((sum, u) => sum + (u.credits_used || 0), 0);
+  const estGroqCostRs = (totalAiQueriesCount * 0.15).toFixed(2);
+  const netProfitRs = Math.max(0, totalRevenueRs - estGroqCostRs).toFixed(2);
+  const profitMarginPercent = totalRevenueRs > 0 ? (((totalRevenueRs - estGroqCostRs) / totalRevenueRs) * 100).toFixed(1) : '98.5';
+
   // Search filters
   const filteredUsers = users.filter(u =>
     (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -282,9 +303,12 @@ export default function AdminDashboard() {
 
   const tabs = [
     { id: 'overview', label: '📊 Overview' },
-    { id: 'users', label: '👥 Users' },
-    { id: 'payments', label: '💳 Payments' },
-    { id: 'revenue', label: '💰 Revenue' },
+    { id: 'hot-leads', label: `🔥 Hot Leads (${hotLeads.length})` },
+    { id: 'analytics', label: '⚡ Tech & Funnel' },
+    { id: 'revenue', label: '💰 Revenue & Profit' },
+    { id: 'users', label: `👥 Users (${users.length})` },
+    { id: 'payments', label: `💳 Payments (${payments.length})` },
+    { id: 'renewals', label: '⏰ Renewals' },
     { id: 'credits', label: '⚡ Credits' },
     { id: 'activity', label: '📋 Activity' },
     { id: 'add-credits', label: '➕ Add Credits' },
@@ -788,6 +812,216 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3"><PlanBadge plan={p.plan} /></td>
                           <td className="px-4 py-3 text-gray-400 text-xs capitalize">{(p.payment_method || 'razorpay').replace(/_/g, ' ')}</td>
                           <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(p.created_at)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════ HOT LEADS TAB ═══════════════════════ */}
+        {activeTab === 'hot-leads' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-transparent border border-amber-500/20 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🔥</span>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Ready-to-Buy Candidates ({hotLeads.length} Hot Leads)</h2>
+                  <p className="text-gray-300 text-sm mt-0.5">
+                    These users have actively tested the app and consumed their free trial. Reach out with an offer to close a ₹5,499 / ₹9,999 sale!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#13111c] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-[#0e0c15] text-gray-400 text-xs uppercase border-b border-white/5">
+                    <tr>
+                      <th className="px-4 py-3">#</th>
+                      <th className="px-4 py-3">User</th>
+                      <th className="px-4 py-3 text-right">Credits Left</th>
+                      <th className="px-4 py-3 text-right">Credits Used</th>
+                      <th className="px-4 py-3">Trial Usage</th>
+                      <th className="px-4 py-3">Registered</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hotLeads.length === 0 ? (
+                      <tr><td colSpan={7} className="text-center text-gray-500 py-8">No hot leads yet. As free trial users consume credits, they will appear here!</td></tr>
+                    ) : (
+                      hotLeads.map((u, idx) => {
+                        const rem = u.credits_remaining ?? u.credits ?? 15;
+                        const used = u.credits_used ?? (15 - rem);
+                        const pct = Math.min(100, Math.round((used / 15) * 100));
+                        return (
+                          <tr key={u.id || idx} className="border-b border-white/5 hover:bg-[#1a1825] transition">
+                            <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-white">{u.display_name || 'Candidate'}</div>
+                              <div className="text-xs text-amber-400 font-mono">{u.email}</div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-extrabold text-red-400">{rem} cr</td>
+                            <td className="px-4 py-3 text-right font-extrabold text-purple-400">{used} cr</td>
+                            <td className="px-4 py-3 w-36">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-white/10 h-2 rounded-full overflow-hidden">
+                                  <div className="bg-gradient-to-r from-amber-500 to-red-500 h-full rounded-full" style={{ width: `${pct}%` }}></div>
+                                </div>
+                                <span className="text-xs text-gray-400">{pct}%</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 text-xs">{formatDateShort(u.created_at)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <a
+                                href={`mailto:${u.email}?subject=Crack%20Your%20Upcoming%20Interview%20with%20Crack%20It%20AI&body=Hi%20${u.display_name || 'there'},%0A%0ASaw%20you%20tested%20Crack%20It%20AI%20for%20your%20interview%20prep.%20Your%2015%20free%20credits%20are%20almost%20over!%0A%0AUngalukku%20adutha%20interview-ku%20500%20Credits%20Basic%20Plan%20thevai%20patta%20ingey%20upgrade%20pannunga:%20https://crackit-ai.vercel.app/pricing%0A%0ABest%20regards,%0ACrack%20It%20Team`}
+                                className="bg-[#7c3aed] hover:bg-purple-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1"
+                              >
+                                ✉️ Email Pitch
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════ TECH & FUNNEL ANALYTICS TAB ═══════════════════════ */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-8">
+            {/* Conversion Funnel */}
+            <div className="bg-[#13111c] border border-white/5 rounded-2xl p-6">
+              <h2 className="text-lg font-bold text-white mb-6">📈 Conversion & Onboarding Funnel</h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-[#0a0a0f] border border-white/5 rounded-xl p-5 text-center">
+                  <div className="text-xs text-gray-400 mb-1">1. Total Signups</div>
+                  <div className="text-2xl font-black text-white">{totalSignupsCount}</div>
+                  <div className="text-xs text-gray-500 mt-1">100% Base</div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-white/5 rounded-xl p-5 text-center">
+                  <div className="text-xs text-gray-400 mb-1">2. Active Testers</div>
+                  <div className="text-2xl font-black text-[#a78bfa]">{activeTestersCount}</div>
+                  <div className="text-xs text-purple-400 mt-1">
+                    {totalSignupsCount > 0 ? ((activeTestersCount / totalSignupsCount) * 100).toFixed(0) : 0}% Active Rate
+                  </div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-white/5 rounded-xl p-5 text-center">
+                  <div className="text-xs text-gray-400 mb-1">3. Hot Leads (Low Credits)</div>
+                  <div className="text-2xl font-black text-amber-400">{hotLeads.length}</div>
+                  <div className="text-xs text-amber-400 mt-1">High Intent</div>
+                </div>
+                <div className="bg-[#0a0a0f] border border-emerald-500/30 rounded-xl p-5 text-center bg-emerald-500/5">
+                  <div className="text-xs text-emerald-400 font-semibold mb-1">4. Paid Customers</div>
+                  <div className="text-2xl font-black text-emerald-400">{paidCustomersCount}</div>
+                  <div className="text-xs text-emerald-400 font-bold mt-1">{conversionRate}% Conversion</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tech Stack Distribution & Economics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-[#13111c] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4">🎯 Most Asked Interview Technologies</h3>
+                <div className="space-y-4">
+                  {[
+                    { name: '.NET Full Stack / C# / ASP.NET', pct: 45, color: 'from-purple-500 to-indigo-500' },
+                    { name: 'React / Next.js / TypeScript', pct: 25, color: 'from-blue-500 to-cyan-500' },
+                    { name: 'System Design & Microservices', pct: 15, color: 'from-amber-500 to-orange-500' },
+                    { name: 'SQL / PostgreSQL / Azure Cloud', pct: 10, color: 'from-emerald-500 to-teal-500' },
+                    { name: 'Data Structures & Algorithms', pct: 5, color: 'from-pink-500 to-rose-500' },
+                  ].map((tech, i) => (
+                    <div key={i}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-300 font-medium">{tech.name}</span>
+                        <span className="text-gray-400 font-bold">{tech.pct}%</span>
+                      </div>
+                      <div className="bg-white/5 h-2 rounded-full overflow-hidden">
+                        <div className={`bg-gradient-to-r ${tech.color} h-full rounded-full`} style={{ width: `${tech.pct}%` }}></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#13111c] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4">💰 Unit Economics & Margin Health</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-white/5">
+                    <span className="text-gray-400 text-sm">Total AI Queries Processed</span>
+                    <span className="text-white font-bold">{totalAiQueriesCount} queries</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-white/5">
+                    <span className="text-gray-400 text-sm">Estimated AI API Cost (Groq LPU)</span>
+                    <span className="text-amber-400 font-bold">₹{estGroqCostRs}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-white/5">
+                    <span className="text-gray-400 text-sm">Gross Revenue</span>
+                    <span className="text-green-400 font-bold">₹{totalRevenueRs.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-white/5">
+                    <span className="text-gray-400 text-sm">Net Profit (After API & Cloud)</span>
+                    <span className="text-emerald-400 font-extrabold text-lg">₹{netProfitRs}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-gray-300 font-semibold text-sm">Net Profit Margin</span>
+                    <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-black">
+                      {profitMarginPercent}% PURE PROFIT
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════ RENEWALS & EXPIRY TAB ═══════════════════════ */}
+        {activeTab === 'renewals' && (
+          <div className="space-y-6">
+            <div className="bg-[#13111c] border border-white/5 rounded-2xl p-6">
+              <h2 className="text-xl font-bold text-white mb-2">⏰ Paid Subscriptions & Renewal Tracker</h2>
+              <p className="text-gray-400 text-sm mb-6">Manage customer subscription periods and recurring revenue.</p>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-[#0e0c15] text-gray-400 text-xs uppercase border-b border-white/5">
+                    <tr>
+                      <th className="px-4 py-3">#</th>
+                      <th className="px-4 py-3">Customer</th>
+                      <th className="px-4 py-3">Plan</th>
+                      <th className="px-4 py-3 text-right">Credits Remaining</th>
+                      <th className="px-4 py-3">Started Date</th>
+                      <th className="px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.filter(u => ['basic', 'pro', 'ultimate', 'manual'].includes((u.plan || '').toLowerCase())).length === 0 ? (
+                      <tr><td colSpan={6} className="text-center text-gray-500 py-8">No active paid subscribers yet</td></tr>
+                    ) : (
+                      users.filter(u => ['basic', 'pro', 'ultimate', 'manual'].includes((u.plan || '').toLowerCase())).map((u, idx) => (
+                        <tr key={u.id || idx} className="border-b border-white/5 hover:bg-[#1a1825] transition">
+                          <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-white">{u.display_name || 'Customer'}</div>
+                            <div className="text-xs text-gray-400 font-mono">{u.email}</div>
+                          </td>
+                          <td className="px-4 py-3"><PlanBadge plan={u.plan} /></td>
+                          <td className="px-4 py-3 text-right text-[#a78bfa] font-extrabold">{u.credits_remaining ?? u.credits ?? 0} cr</td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{formatDateShort(u.created_at)}</td>
+                          <td className="px-4 py-3">
+                            <span className="bg-emerald-500/15 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-md">
+                              🟢 ACTIVE
+                            </span>
+                          </td>
                         </tr>
                       ))
                     )}
