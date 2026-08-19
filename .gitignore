@@ -12,3 +12,6 @@ website/node_modules/
 website/.next/
 website/public/downloads/
 *.exe
+*.pfx
+.vercel
+.env*
