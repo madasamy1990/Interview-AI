@@ -38,7 +38,8 @@ export default function Signup() {
         options: {
           data: {
             display_name: name,
-          }
+          },
+          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/dashboard` : 'https://crackit-ai.vercel.app/dashboard'
         }
       });
 
