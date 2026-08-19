@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, screen, desktopCapturer, globalShortcut, dialog, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const Tesseract = require('tesseract.js');
 const pdfParse = require('pdf-parse');
@@ -226,7 +227,58 @@ app.whenReady().then(() => {
   globalShortcut.register('Ctrl+Shift+Up', () => {
     if (mainWindow) mainWindow.webContents.send('remote-scroll', 'up');
   });
+
+  // 🔄 Initialize Automatic Background Updater
+  initAutoUpdater();
 });
+
+// 🔄 Setup Auto-Updater with GitHub Releases (madasamy1990/Interview-AI)
+function initAutoUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[AutoUpdater] Checking for updates on GitHub...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    console.log(`[AutoUpdater] Update available: v${info.version}`);
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    console.log('[AutoUpdater] App is up to date.');
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.log('[AutoUpdater] Error:', err?.message || err);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log(`[AutoUpdater] Update v${info.version} downloaded in background.`);
+    dialog.showMessageBox(mainWindow || undefined, {
+      type: 'info',
+      buttons: ['🎉 Update & Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      title: '🎉 New Version Ready!',
+      message: `Crack It AI update (v${info.version}) has been downloaded in the background.`,
+      detail: 'Click "Update & Restart Now" to switch to the latest version immediately.'
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    }).catch((e) => {
+      console.error('[AutoUpdater] Dialog error:', e);
+    });
+  });
+
+  // Trigger background check 4 seconds after app starts
+  setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.log('[AutoUpdater] Background check failed:', err?.message || err);
+    });
+  }, 4000);
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

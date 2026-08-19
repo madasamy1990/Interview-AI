@@ -12,6 +12,7 @@
     "dist": "electron-builder --win"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "openai": "^4.67.0",
     "pdf-parse": "^1.1.1",
     "tesseract.js": "^7.0.0"
@@ -27,6 +28,13 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "madasamy1990",
+        "repo": "Interview-AI"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",
