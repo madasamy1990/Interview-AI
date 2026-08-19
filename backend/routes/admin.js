@@ -70,15 +70,20 @@ router.get('/users', authenticate, adminOnly, async (req, res) => {
   try {
     const { data: profiles, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, display_name, credits, plan, subscription_status, created_at, updated_at')
+      .select('id, email, display_name, credits_remaining, credits_used, plan, subscription_status, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    res.json({ users: profiles || [] });
+    const formattedUsers = (profiles || []).map(u => ({
+      ...u,
+      credits: u.credits_remaining ?? 0
+    }));
+
+    res.json({ users: formattedUsers });
   } catch (err) {
     console.error('Admin users error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 });
 
