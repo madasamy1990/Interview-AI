@@ -15,9 +15,9 @@ export default function Download() {
         
         <div className="bg-[#13111c] border border-white/10 rounded-2xl p-8 mb-12 max-w-lg mx-auto transform hover:scale-105 transition duration-300">
           <h2 className="text-2xl font-bold text-white mb-2">Windows Version</h2>
-          <p className="text-gray-400 mb-6">v1.0.2 (Latest Cloud Audio Fix) • Windows 10/11</p>
+          <p className="text-gray-400 mb-6">v1.0.3 (Auto-Updater & Stealth Alert) • Windows 10/11</p>
           
-          <a href="https://github.com/madasamy1990/Interview-AI/releases/download/v1.0.2/CrackIt-Portable.exe" className="w-full bg-[#7c3aed] hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-xl transition text-lg flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+          <a href="https://github.com/madasamy1990/Interview-AI/releases/latest/download/CrackIt-Portable.exe" className="w-full bg-[#7c3aed] hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-xl transition text-lg flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.4)]">
             <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
@@ -26,7 +26,7 @@ export default function Download() {
           
           <div className="mt-6 flex justify-center space-x-6 text-sm text-gray-500">
             <div className="flex items-center"><svg className="w-4 h-4 mr-1 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Digitally Signed</div>
-            <div className="flex items-center"><svg className="w-4 h-4 mr-1 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> 90MB Optimized</div>
+            <div className="flex items-center"><svg className="w-4 h-4 mr-1 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> 74MB Portable</div>
           </div>
         </div>
 
