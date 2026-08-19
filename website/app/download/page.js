@@ -18,14 +18,14 @@ export default function Download() {
           <p className="text-gray-400 mb-6">v1.0.2 (Latest Cloud Audio Fix) • Windows 10/11</p>
           
           <div className="space-y-3">
-            <a href="https://github.com/madasamy1990/Interview-AI/releases/download/v1.0.2/Crack-It-v1.0.2-Windows.zip" className="w-full bg-[#7c3aed] hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-xl transition text-lg flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+            <a href="https://github.com/madasamy1990/Interview-AI/releases/download/v1.0.2/CrackIt-Portable.exe" className="w-full bg-[#7c3aed] hover:bg-purple-600 text-white font-bold py-4 px-6 rounded-xl transition text-lg flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.4)]">
               <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Download Portable (.zip) — Recommended
+              Download Portable (.exe) — Recommended
             </a>
 
-            <a href="https://github.com/madasamy1990/Interview-AI/releases/download/v1.0.2/Crack.it.Setup.1.0.0.exe" className="w-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-semibold py-3 px-6 rounded-xl transition text-sm flex items-center justify-center border border-white/10">
+            <a href="https://github.com/madasamy1990/Interview-AI/releases/download/v1.0.2/CrackIt-Setup.exe" className="w-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-semibold py-3 px-6 rounded-xl transition text-sm flex items-center justify-center border border-white/10">
               Download Setup Installer (.exe)
             </a>
           </div>

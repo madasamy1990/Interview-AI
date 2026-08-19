@@ -48,13 +48,20 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "artifactName": "CrackIt-${target}.${ext}",
+      "certificateFile": "crackit-cert.pfx",
+      "certificatePassword": "CrackIt2026"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "CrackIt-Setup.exe"
+    },
+    "portable": {
+      "artifactName": "CrackIt-Portable.exe"
     }
   }
 }
