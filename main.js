@@ -15,17 +15,23 @@ let savedNormalBounds = null;
 let toastWindow = null;
 let toastTimeout = null;
 
+function closeStealthToast() {
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+    toastTimeout = null;
+  }
+  if (toastWindow && !toastWindow.isDestroyed()) {
+    try {
+      toastWindow.destroy();
+    } catch (e) {}
+    toastWindow = null;
+  }
+}
+
 // Show screen-share invisible stealth notification toast
 function showStealthToast() {
   try {
-    if (toastWindow && !toastWindow.isDestroyed()) {
-      toastWindow.close();
-      toastWindow = null;
-    }
-    if (toastTimeout) {
-      clearTimeout(toastTimeout);
-      toastTimeout = null;
-    }
+    closeStealthToast();
 
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.workAreaSize;
@@ -40,7 +46,7 @@ function showStealthToast() {
       alwaysOnTop: true,
       skipTaskbar: true,
       resizable: false,
-      focusable: false,
+      focusable: true,
       hasShadow: true,
       webPreferences: {
         nodeIntegration: false,
@@ -54,12 +60,10 @@ function showStealthToast() {
     toastWindow.setAlwaysOnTop(true, 'screen-saver', 2);
     toastWindow.loadFile('toast.html');
 
+    // Auto close after 3 seconds
     toastTimeout = setTimeout(() => {
-      if (toastWindow && !toastWindow.isDestroyed()) {
-        toastWindow.close();
-        toastWindow = null;
-      }
-    }, 3500);
+      closeStealthToast();
+    }, 3000);
 
     toastWindow.on('closed', () => {
       toastWindow = null;
@@ -70,11 +74,8 @@ function showStealthToast() {
 }
 
 function restoreApp() {
+  closeStealthToast();
   if (!mainWindow) return;
-  if (toastWindow && !toastWindow.isDestroyed()) {
-    toastWindow.close();
-    toastWindow = null;
-  }
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   } else {
@@ -234,6 +235,11 @@ app.on('window-all-closed', () => {
 // IPC: Restore window from Toast notification click
 ipcMain.handle('restore-from-toast', () => {
   restoreApp();
+});
+
+// IPC: Close Toast notification directly
+ipcMain.handle('close-toast', () => {
+  closeStealthToast();
 });
 
 // IPC: Toggle screen share hide
