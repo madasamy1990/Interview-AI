@@ -2,18 +2,88 @@ const { app, BrowserWindow, ipcMain, screen, desktopCapturer, globalShortcut, di
 const path = require('path');
 const Tesseract = require('tesseract.js');
 const pdfParse = require('pdf-parse');
+const fs = require('fs');
 
-// Fix Windows GPU cache errors (harmless but noisy)
+// Fix Windows GPU cache errors
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('no-sandbox');
 
-let mainWindow;
+let mainWindow = null;
 let isHidden = false;
 let isStealthMode = false;
 let savedNormalBounds = null;
-const fs = require('fs');
+let toastWindow = null;
+let toastTimeout = null;
 
-// Load saved window bounds
+// Show screen-share invisible stealth notification toast
+function showStealthToast() {
+  try {
+    if (toastWindow && !toastWindow.isDestroyed()) {
+      toastWindow.close();
+      toastWindow = null;
+    }
+    if (toastTimeout) {
+      clearTimeout(toastTimeout);
+      toastTimeout = null;
+    }
+
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+
+    toastWindow = new BrowserWindow({
+      width: 360,
+      height: 90,
+      x: width - 380,
+      y: height - 100,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      resizable: false,
+      focusable: false,
+      hasShadow: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+      }
+    });
+
+    // 🔑 100% Invisible to Zoom, Teams & Meet Screen Share
+    toastWindow.setContentProtection(true);
+    toastWindow.setAlwaysOnTop(true, 'screen-saver', 2);
+    toastWindow.loadFile('toast.html');
+
+    toastTimeout = setTimeout(() => {
+      if (toastWindow && !toastWindow.isDestroyed()) {
+        toastWindow.close();
+        toastWindow = null;
+      }
+    }, 3500);
+
+    toastWindow.on('closed', () => {
+      toastWindow = null;
+    });
+  } catch (err) {
+    console.error('Toast notification error:', err);
+  }
+}
+
+function restoreApp() {
+  if (!mainWindow) return;
+  if (toastWindow && !toastWindow.isDestroyed()) {
+    toastWindow.close();
+    toastWindow = null;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  } else {
+    mainWindow.show();
+  }
+  mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+  mainWindow.focus();
+}
+
 function loadWindowBounds() {
   try {
     const boundsPath = path.join(app.getPath('userData'), 'window-bounds.json');
@@ -27,7 +97,6 @@ function loadWindowBounds() {
   return null;
 }
 
-// Save window bounds
 function saveWindowBounds(bounds) {
   try {
     const boundsPath = path.join(app.getPath('userData'), 'window-bounds.json');
@@ -48,7 +117,6 @@ function createWindow() {
     y: 40
   };
 
-  // Use saved bounds but clamp to min/max limits
   const bounds = savedBounds || defaultBounds;
   const windowBounds = {
     width: Math.min(Math.max(bounds.width || 500, 420), 600),
@@ -84,17 +152,13 @@ function createWindow() {
 
   // 🔑 KEY FEATURE: Hide from screen share
   mainWindow.setContentProtection(true);
-
   mainWindow.loadFile('index.html');
-
-  // Keep always on top even when other windows focused
   mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-  // Save window bounds on move/resize (debounced to prevent stutter)
   let boundsTimer = null;
   function debounceSaveBounds() {
     if (!mainWindow.isMinimized() && !mainWindow.isMaximized()) {
@@ -109,22 +173,16 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Grant microphone and speech recognition permissions
   const { session } = require('electron');
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     const allowedPermissions = ['media', 'microphone', 'audioCapture', 'desktopCapture', 'screen'];
-    if (allowedPermissions.includes(permission)) {
-      callback(true);
-    } else {
-      callback(false);
-    }
+    callback(allowedPermissions.includes(permission));
   });
 
   session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
     const allowedPermissions = ['media', 'microphone', 'audioCapture', 'desktopCapture', 'screen'];
     return allowedPermissions.includes(permission);
   });
-
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -135,11 +193,9 @@ app.whenReady().then(() => {
     if (!mainWindow) return;
     isStealthMode = !isStealthMode;
     if (isStealthMode) {
-      // Mouse passes through — invisible to screen share viewers
       mainWindow.setIgnoreMouseEvents(true, { forward: true });
       mainWindow.webContents.send('stealth-changed', true);
     } else {
-      // Normal mode — can click/interact
       mainWindow.setIgnoreMouseEvents(false);
       mainWindow.webContents.send('stealth-changed', false);
     }
@@ -150,29 +206,24 @@ app.whenReady().then(() => {
   globalShortcut.register('Ctrl+B', () => {
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) {
-      // Restore to previous position
-      mainWindow.restore();
+      restoreApp();
       if (boundsBeforeMinimize) {
         mainWindow.setBounds(boundsBeforeMinimize);
         boundsBeforeMinimize = null;
       }
-      mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
-      mainWindow.focus();
     } else {
-      // Save current position, then minimize
       boundsBeforeMinimize = mainWindow.getBounds();
       mainWindow.minimize();
+      showStealthToast();
     }
   });
 
-  // 📜 Global Shortcut: Ctrl+Shift+↑/↓ — Scroll Crack it panel from ANY app
+  // 📜 Global Shortcut: Ctrl+Shift+↑/↓ — Scroll panel remotely
   globalShortcut.register('Ctrl+Shift+Down', () => {
-    if (!mainWindow) return;
-    mainWindow.webContents.send('remote-scroll', 'down');
+    if (mainWindow) mainWindow.webContents.send('remote-scroll', 'down');
   });
   globalShortcut.register('Ctrl+Shift+Up', () => {
-    if (!mainWindow) return;
-    mainWindow.webContents.send('remote-scroll', 'up');
+    if (mainWindow) mainWindow.webContents.send('remote-scroll', 'up');
   });
 });
 
@@ -180,11 +231,17 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// IPC: Restore window from Toast notification click
+ipcMain.handle('restore-from-toast', () => {
+  restoreApp();
+});
+
 // IPC: Toggle screen share hide
 ipcMain.handle('toggle-hide', () => {
   isHidden = !isHidden;
   mainWindow.setContentProtection(isHidden);
   mainWindow.setOpacity(isHidden ? 0.15 : 1.0);
+  if (isHidden) showStealthToast();
   return isHidden;
 });
 
@@ -203,17 +260,19 @@ ipcMain.handle('toggle-stealth', () => {
 
 // IPC: Minimize window
 ipcMain.handle('minimize-window', () => {
+  if (!mainWindow) return;
   mainWindow.minimize();
+  showStealthToast();
 });
 
 // IPC: Close window
 ipcMain.handle('close-window', () => {
-  mainWindow.close();
+  if (mainWindow) mainWindow.close();
 });
 
-// IPC: Make window draggable
+// IPC: Make window draggable / set opacity
 ipcMain.handle('set-opacity', (event, opacity) => {
-  mainWindow.setOpacity(opacity);
+  if (mainWindow) mainWindow.setOpacity(opacity);
 });
 
 // IPC: Get screen sources for screenshot
@@ -228,12 +287,11 @@ ipcMain.handle('get-screen-sources', async () => {
     thumbnail: s.thumbnail.toDataURL()
   }));
 });
-// IPC: OCR screenshot using Tesseract.js (local, no API key needed)
+
+// IPC: OCR screenshot using Tesseract.js (local)
 ipcMain.handle('perform-ocr', async (event, imageDataUrl) => {
   try {
-    const { data: { text } } = await Tesseract.recognize(imageDataUrl, 'eng', {
-      logger: () => {} // suppress logs
-    });
+    const { data: { text } } = await Tesseract.recognize(imageDataUrl, 'eng', { logger: () => {} });
     return text?.trim() || '';
   } catch (e) {
     console.error('OCR error:', e);
@@ -244,8 +302,7 @@ ipcMain.handle('perform-ocr', async (event, imageDataUrl) => {
 // IPC: Get audio devices
 ipcMain.handle('get-audio-devices', async () => {
   try {
-    const devices = await desktopCapturer.getSources({ types: ['audio', 'screen'] });
-    return devices;
+    return await desktopCapturer.getSources({ types: ['audio', 'screen'] });
   } catch (e) {
     return [];
   }
@@ -255,7 +312,6 @@ ipcMain.handle('get-audio-devices', async () => {
 ipcMain.handle('toggle-teleprompter', (_, enable) => {
   if (!mainWindow) return;
   const { width } = screen.getPrimaryDisplay().workAreaSize;
-
   if (enable) {
     savedNormalBounds = mainWindow.getBounds();
     mainWindow.setMinimumSize(400, 60);
@@ -283,21 +339,18 @@ ipcMain.handle('open-resume-dialog', async () => {
   return result.filePaths[0];
 });
 
-// IPC: Parse resume PDF and extract text
+// IPC: Parse resume PDF
 ipcMain.handle('parse-resume', async (_, filePath) => {
   try {
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdfParse(dataBuffer);
-    const text = data.text?.trim() || '';
-    const filename = path.basename(filePath);
-    return { success: true, text, filename, pages: data.numpages };
+    return { success: true, text: data.text?.trim() || '', filename: path.basename(filePath), pages: data.numpages };
   } catch (e) {
-    console.error('Resume parse error:', e);
     return { success: false, error: e.message };
   }
 });
 
-// IPC: Open external URL in default system browser
+// IPC: Open external URL in default browser
 ipcMain.handle('open-external', async (_, url) => {
   try {
     if (url && (url.startsWith('https://') || url.startsWith('http://'))) {

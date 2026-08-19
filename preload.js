@@ -14,4 +14,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openResumeDialog: () => ipcRenderer.invoke('open-resume-dialog'),
   parseResume: (filePath) => ipcRenderer.invoke('parse-resume', filePath),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  restoreFromToast: () => ipcRenderer.invoke('restore-from-toast'),
 });

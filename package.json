@@ -33,6 +33,7 @@
       "renderer.js",
       "index.html",
       "style.css",
+      "toast.html",
       "package.json",
       "!website/**",
       "!backend/**",
@@ -46,10 +47,9 @@
     "compression": "maximum",
     "win": {
       "target": [
-        "nsis",
         "portable"
       ],
-      "artifactName": "CrackIt-${target}.${ext}",
+      "artifactName": "CrackIt-Portable.exe",
       "certificateFile": "crackit-cert.pfx",
       "certificatePassword": "CrackIt2026"
     },
