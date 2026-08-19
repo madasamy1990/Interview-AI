@@ -7,13 +7,14 @@ const creditsRoutes = require('./routes/credits');
 const askRoutes = require('./routes/ask');
 const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
+const transcribeRoutes = require('./routes/transcribe');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // CORS configuration to allow Electron app + website origins
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -26,6 +27,7 @@ app.use('/credits', creditsRoutes);
 app.use('/ask', askRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/admin', adminRoutes);
+app.use('/transcribe', transcribeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

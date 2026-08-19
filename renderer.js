@@ -1546,19 +1546,23 @@ function stopAndTranscribe() {
   setStatusBar('⏳ Processing your question...');
 }
 
+async function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const res = reader.result;
+      const base64 = typeof res === 'string' && res.includes(',') ? res.split(',')[1] : res;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function transcribeAudio() {
   if (audioChunks.length === 0) {
     liveTranscriptBar.style.display = 'none';
     setStatusBar('Press Mic button to start');
-    return;
-  }
-
-  // Use Groq Whisper for transcription (FREE + fast)
-  const whisperKey = groqKey || apiKey;
-  if (!whisperKey) {
-    liveTranscriptBar.style.display = 'none';
-    setStatusBar('Press Mic button to start');
-    showError('Add Groq API key in ⚙️ Settings to use mic transcription.');
     return;
   }
 
@@ -1567,27 +1571,43 @@ async function transcribeAudio() {
     const ext = mimeType.includes('ogg') ? 'ogg' : 'webm';
     const audioBlob = new Blob(audioChunks, { type: mimeType });
 
-    const formData = new FormData();
-    formData.append('file', audioBlob, `recording.${ext}`);
-    formData.append('model', groqKey ? 'whisper-large-v3' : 'whisper-1');
-    formData.append('language', 'en');
-    formData.append('response_format', 'json');
+    let transcript = '';
 
-    // Use Groq Whisper endpoint (free + fast) or OpenAI Whisper
-    const apiUrl = groqKey
-      ? 'https://api.groq.com/openai/v1/audio/transcriptions'
-      : 'https://api.openai.com/v1/audio/transcriptions';
+    const whisperKey = groqKey || apiKey;
+    if (whisperKey) {
+      // 1. Direct user key (if configured in settings)
+      const formData = new FormData();
+      formData.append('file', audioBlob, `recording.${ext}`);
+      formData.append('model', groqKey ? 'whisper-large-v3' : 'whisper-1');
+      formData.append('language', 'en');
+      formData.append('response_format', 'json');
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${whisperKey}` },
-      body: formData
-    });
+      const apiUrl = groqKey
+        ? 'https://api.groq.com/openai/v1/audio/transcriptions'
+        : 'https://api.openai.com/v1/audio/transcriptions';
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || 'Transcription failed');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${whisperKey}` },
+        body: formData
+      });
 
-    const transcript = data.text?.trim();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || 'Transcription failed');
+      transcript = data.text?.trim() || '';
+    } else {
+      // 2. Cloud SaaS backend transcription (Automatic - Zero API key required for user!)
+      const base64Audio = await blobToBase64(audioBlob);
+      const response = await fetch(`${BACKEND_URL}/transcribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio: base64Audio, mimeType, language: 'en' })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.message || 'Cloud transcription failed');
+      transcript = data.text?.trim() || '';
+    }
     liveTranscriptBar.style.display = 'none';
 
     if (transcript) {
