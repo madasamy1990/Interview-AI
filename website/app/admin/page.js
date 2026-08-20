@@ -155,6 +155,8 @@ export default function AdminDashboard() {
     fetchAll();
   }, [token, fetchAll]);
 
+  const [creditSubmitting, setCreditSubmitting] = useState(false);
+
   const handleAddCredits = async (e) => {
     e.preventDefault();
     setAddCreditsMsg(null);
@@ -165,131 +167,64 @@ export default function AdminDashboard() {
       return;
     }
 
-    // ── REMOVE / DEDUCT CREDITS ACTION ──
-    if (creditAction === 'remove') {
-      // Step 1: Try backend API first (uses supabaseAdmin which always succeeds)
+    setCreditSubmitting(true);
+
+    try {
+      const endpoint = creditAction === 'remove' ? '/admin/deduct-credits' : '/admin/add-credits';
+      const payload = creditAction === 'remove'
+        ? { email: targetEmail, credits: amount }
+        : { email: targetEmail, credits: amount, plan: addCreditsPlan };
+
+      // Call server API with timeout & retry to handle waking up
+      let res;
       try {
-        const res = await fetch(`${BACKEND_URL}/admin/deduct-credits`, {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        res = await fetch(`${BACKEND_URL}${endpoint}`, {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({ email: targetEmail, credits: amount })
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
-        if (res.ok) {
-          const data = await res.json();
-          setAddCreditsMsg({
-            type: 'success',
-            text: `🗑️ ${data.message || `Successfully deducted ${amount} credits from ${targetEmail}`} (New Balance: ${data.new_balance})`
-          });
-          setAddCreditsEmail('');
-          setAddCreditsAmount('');
-          await fetchAll();
-          await fetchUsers();
-          return;
-        }
-      } catch (err) {
-        console.warn('Backend deduct-credits endpoint notice, executing via database RPC fallback...');
+        clearTimeout(timeoutId);
+      } catch (fetchErr) {
+        // If first attempt timed out (cold start waking up), try one more time
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        res = await fetch(`${BACKEND_URL}${endpoint}`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
       }
 
-      // Step 2: RPC Fallback (SECURITY DEFINER bypasses RLS)
-      try {
-        const { data: profile, error: pErr } = await supabase
-          .from('profiles')
-          .select('id, credits_remaining')
-          .ilike('email', targetEmail)
-          .single();
+      const data = await res.json();
 
-        if (pErr || !profile) {
-          setAddCreditsMsg({ type: 'error', text: `User not found with email: ${targetEmail}` });
-          return;
-        }
-
-        const deductAmount = Math.min(profile.credits_remaining || 0, amount);
-        const { data: newBalance, error: rpcErr } = await supabase.rpc('deduct_credits', {
-          user_id_param: profile.id,
-          amount: deductAmount,
-          desc_text: `Admin manual deduction (-${deductAmount} credits)`
-        });
-
-        if (rpcErr) throw rpcErr;
-
+      if (res.ok && data.success) {
         setAddCreditsMsg({
           type: 'success',
-          text: `🗑️ Successfully deducted ${deductAmount} credits from ${targetEmail}! (New Balance: ${newBalance})`
+          text: `🎉 ${data.message} (Verified DB Balance: ${data.new_balance ?? 'Updated'})`
         });
         setAddCreditsEmail('');
         setAddCreditsAmount('');
         await fetchAll();
         await fetchUsers();
-        return;
-      } catch (dbErr) {
-        console.error('Database credit deduct error:', dbErr);
-        setAddCreditsMsg({ type: 'error', text: dbErr.message || 'Failed to deduct credits' });
-        return;
-      }
-    }
-
-    // ── ADD CREDITS ACTION ──
-    // Step 1: Try backend first
-    try {
-      const res = await fetch(`${BACKEND_URL}/admin/add-credits`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ email: targetEmail, credits: amount, plan: addCreditsPlan })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAddCreditsMsg({ type: 'success', text: data.message || `Successfully added ${amount} credits to ${targetEmail}` });
-        setAddCreditsEmail('');
-        setAddCreditsAmount('');
-        fetchAll();
-        return;
+      } else {
+        setAddCreditsMsg({
+          type: 'error',
+          text: data.error || data.message || 'Operation failed on database'
+        });
       }
     } catch (err) {
-      console.warn('Backend add-credits endpoint notice, executing via database direct fallback...');
-    }
-
-    // Step 2: Direct Database Fallback (0ms latency, works even if backend is sleeping)
-    try {
-      const { data: profile, error: pErr } = await supabase
-        .from('profiles')
-        .select('id, credits_remaining, credits_used')
-        .ilike('email', targetEmail)
-        .single();
-
-      if (pErr || !profile) {
-        setAddCreditsMsg({ type: 'error', text: `User not found with email: ${targetEmail}` });
-        return;
-      }
-
-      // Execute Postgres RPC function (SECURITY DEFINER bypasses RLS and updates profiles + credit_transactions atomically)
-      const { data: newBalance, error: rpcError } = await supabase.rpc('add_credits', {
-        user_id_param: profile.id,
-        amount: amount,
-        plan_name: addCreditsPlan || 'manual'
+      console.error('Credit management error:', err);
+      setAddCreditsMsg({
+        type: 'error',
+        text: 'Server is currently waking up. Please wait 10 seconds and try again.'
       });
-
-      if (rpcError) throw rpcError;
-
-      // Insert payment record
-      await supabase.from('payments').insert({
-        user_id: profile.id,
-        razorpay_payment_id: `manual_${Date.now()}`,
-        razorpay_order_id: `order_manual_${Date.now()}`,
-        status: 'captured',
-        payment_method: 'admin_manual',
-        plan: addCreditsPlan || 'manual',
-        amount: 0,
-        credits_added: amount
-      });
-
-      setAddCreditsMsg({ type: 'success', text: `🎉 Successfully added ${amount} credits to ${targetEmail}! (New Balance: ${newBalance})` });
-      setAddCreditsEmail('');
-      setAddCreditsAmount('');
-      await fetchAll();
-      await fetchUsers();
-    } catch (dbErr) {
-      console.error('Database credit add error:', dbErr);
-      setAddCreditsMsg({ type: 'error', text: dbErr.message || 'Failed to add credits to database' });
+    } finally {
+      setCreditSubmitting(false);
     }
   };
 
@@ -1260,13 +1195,22 @@ export default function AdminDashboard() {
 
                 <button
                   type="submit"
-                  className={`w-full font-bold py-3.5 rounded-xl transition ${
-                    creditAction === 'add'
+                  disabled={creditSubmitting}
+                  className={`w-full font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 ${
+                    creditSubmitting
+                      ? 'opacity-60 cursor-not-allowed bg-gray-700 text-gray-300'
+                      : creditAction === 'add'
                       ? 'bg-[#7c3aed] hover:bg-purple-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)]'
                       : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]'
                   }`}
                 >
-                  {creditAction === 'add' ? '⚡ Add Credits' : '🗑️ Deduct Credits'}
+                  {creditSubmitting ? (
+                    <><span>⏳</span> Processing Database Update...</>
+                  ) : creditAction === 'add' ? (
+                    <><span>⚡</span> Add Credits</>
+                  ) : (
+                    <><span>🗑️</span> Deduct Credits</>
+                  )}
                 </button>
               </form>
             </div>
