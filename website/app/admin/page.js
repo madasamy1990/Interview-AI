@@ -167,10 +167,34 @@ export default function AdminDashboard() {
 
     // ── REMOVE / DEDUCT CREDITS ACTION ──
     if (creditAction === 'remove') {
+      // Step 1: Try backend API first (uses supabaseAdmin which always succeeds)
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/deduct-credits`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ email: targetEmail, credits: amount })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAddCreditsMsg({
+            type: 'success',
+            text: `🗑️ ${data.message || `Successfully deducted ${amount} credits from ${targetEmail}`} (New Balance: ${data.new_balance})`
+          });
+          setAddCreditsEmail('');
+          setAddCreditsAmount('');
+          await fetchAll();
+          await fetchUsers();
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend deduct-credits endpoint notice, executing via database RPC fallback...');
+      }
+
+      // Step 2: RPC Fallback (SECURITY DEFINER bypasses RLS)
       try {
         const { data: profile, error: pErr } = await supabase
           .from('profiles')
-          .select('id, credits_remaining, credits_used')
+          .select('id, credits_remaining')
           .ilike('email', targetEmail)
           .single();
 
@@ -179,33 +203,18 @@ export default function AdminDashboard() {
           return;
         }
 
-        const currentRemaining = profile.credits_remaining || 0;
-        const newRemaining = Math.max(0, currentRemaining - amount);
-        const actualDeducted = currentRemaining - newRemaining;
-
-        // Update profile balance
-        const { error: upErr } = await supabase
-          .from('profiles')
-          .update({
-            credits_remaining: newRemaining,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', profile.id);
-
-        if (upErr) throw upErr;
-
-        // Log transaction history
-        await supabase.from('credit_transactions').insert({
-          user_id: profile.id,
-          type: 'admin_deduct',
-          amount: -actualDeducted,
-          balance_after: newRemaining,
-          description: `Admin manual deduction (-${actualDeducted} credits)`
+        const deductAmount = Math.min(profile.credits_remaining || 0, amount);
+        const { data: newBalance, error: rpcErr } = await supabase.rpc('deduct_credits', {
+          user_id_param: profile.id,
+          amount: deductAmount,
+          desc_text: `Admin manual deduction (-${deductAmount} credits)`
         });
+
+        if (rpcErr) throw rpcErr;
 
         setAddCreditsMsg({
           type: 'success',
-          text: `🗑️ Successfully deducted ${actualDeducted} credits from ${targetEmail}! (New Balance: ${newRemaining})`
+          text: `🗑️ Successfully deducted ${deductAmount} credits from ${targetEmail}! (New Balance: ${newBalance})`
         });
         setAddCreditsEmail('');
         setAddCreditsAmount('');

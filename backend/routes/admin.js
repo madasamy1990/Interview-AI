@@ -168,4 +168,51 @@ router.post('/add-credits', authenticate, adminOnly, async (req, res) => {
   }
 });
 
+// POST /admin/deduct-credits — Manually deduct credits from a user
+router.post('/deduct-credits', authenticate, adminOnly, async (req, res) => {
+  try {
+    const { email, credits } = req.body;
+    if (!email || !credits) {
+      return res.status(400).json({ error: 'Email and credits amount are required' });
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, credits_remaining')
+      .ilike('email', email)
+      .single();
+
+    if (!profile) {
+      return res.status(404).json({ error: 'User not found with that email' });
+    }
+
+    const currentBal = profile.credits_remaining || 0;
+    const newBal = Math.max(0, currentBal - parseInt(credits));
+    const deducted = currentBal - newBal;
+
+    const { error: upErr } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        credits_remaining: newBal,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', profile.id);
+
+    if (upErr) throw upErr;
+
+    await supabaseAdmin.from('credit_transactions').insert({
+      user_id: profile.id,
+      type: 'admin_deduct',
+      amount: -deducted,
+      balance_after: newBal,
+      description: `Admin manual deduction (-${deducted} credits)`
+    });
+
+    res.json({ success: true, message: `Successfully deducted ${deducted} credits from ${email}`, new_balance: newBal });
+  } catch (err) {
+    console.error('Admin deduct-credits error:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  }
+});
+
 module.exports = router;
