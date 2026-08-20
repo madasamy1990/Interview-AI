@@ -410,15 +410,15 @@ export default function AdminDashboard() {
 
   const tabs = [
     { id: 'overview', label: '📊 Overview' },
-    { id: 'hot-leads', label: `🔥 Hot Leads (${hotLeads.length})` },
-    { id: 'analytics', label: '⚡ Tech & Funnel' },
-    { id: 'revenue', label: '💰 Revenue & Profit' },
+    { id: 'add-credits', label: '⚡ Manage Credits (Add / Remove)' },
     { id: 'users', label: `👥 Users (${users.length})` },
     { id: 'payments', label: `💳 Payments (${payments.length})` },
+    { id: 'hot-leads', label: `🔥 Hot Leads (${hotLeads.length})` },
+    { id: 'revenue', label: '💰 Revenue & Profit' },
+    { id: 'analytics', label: '⚡ Tech & Funnel' },
     { id: 'renewals', label: '⏰ Renewals' },
-    { id: 'credits', label: '⚡ Credits' },
+    { id: 'credits', label: '⚡ Credits Analytics' },
     { id: 'activity', label: '📋 Activity' },
-    { id: 'add-credits', label: '⚡ Manage Credits' },
   ];
 
   return (
