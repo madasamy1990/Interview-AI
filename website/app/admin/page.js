@@ -196,36 +196,14 @@ export default function AdminDashboard() {
         return;
       }
 
-      const currentRemaining = profile.credits_remaining || 0;
-      const newRemaining = currentRemaining + amount;
-
-      // Update profile credits & plan
-      const updatePayload = {
-        credits_remaining: newRemaining,
-        subscription_status: 'active',
-        updated_at: new Date().toISOString()
-      };
-      if (addCreditsPlan && addCreditsPlan !== 'manual') {
-        updatePayload.plan = addCreditsPlan;
-      } else {
-        updatePayload.plan = 'manual';
-      }
-
-      const { error: upErr } = await supabase
-        .from('profiles')
-        .update(updatePayload)
-        .eq('id', profile.id);
-
-      if (upErr) throw upErr;
-
-      // Insert transaction history
-      await supabase.from('credit_transactions').insert({
-        user_id: profile.id,
-        type: 'admin_manual',
+      // Execute Postgres RPC function (SECURITY DEFINER bypasses RLS and updates profiles + credit_transactions atomically)
+      const { data: newBalance, error: rpcError } = await supabase.rpc('add_credits', {
+        user_id_param: profile.id,
         amount: amount,
-        balance_after: newRemaining,
-        description: `Admin manual grant (+${amount} credits, Plan: ${addCreditsPlan || 'manual'})`
+        plan_name: addCreditsPlan || 'manual'
       });
+
+      if (rpcError) throw rpcError;
 
       // Insert payment record
       await supabase.from('payments').insert({
@@ -239,10 +217,11 @@ export default function AdminDashboard() {
         credits_added: amount
       });
 
-      setAddCreditsMsg({ type: 'success', text: `🎉 Successfully added ${amount} credits to ${targetEmail}! (New Balance: ${newRemaining})` });
+      setAddCreditsMsg({ type: 'success', text: `🎉 Successfully added ${amount} credits to ${targetEmail}! (New Balance: ${newBalance})` });
       setAddCreditsEmail('');
       setAddCreditsAmount('');
-      fetchAll();
+      await fetchAll();
+      await fetchUsers();
     } catch (dbErr) {
       console.error('Database credit add error:', dbErr);
       setAddCreditsMsg({ type: 'error', text: dbErr.message || 'Failed to add credits to database' });
