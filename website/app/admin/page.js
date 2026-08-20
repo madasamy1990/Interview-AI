@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   const [addCreditsEmail, setAddCreditsEmail] = useState('');
   const [addCreditsAmount, setAddCreditsAmount] = useState('');
   const [addCreditsPlan, setAddCreditsPlan] = useState('manual');
+  const [creditAction, setCreditAction] = useState('add'); // 'add' | 'remove'
   const [addCreditsMsg, setAddCreditsMsg] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
@@ -159,11 +160,66 @@ export default function AdminDashboard() {
     setAddCreditsMsg(null);
     const targetEmail = (addCreditsEmail || '').trim().toLowerCase();
     const amount = parseInt(addCreditsAmount);
-    if (!targetEmail || !amount) {
-      setAddCreditsMsg({ type: 'error', text: 'Please provide email and credit amount' });
+    if (!targetEmail || !amount || amount <= 0) {
+      setAddCreditsMsg({ type: 'error', text: 'Please provide a valid email and positive credit amount' });
       return;
     }
 
+    // ── REMOVE / DEDUCT CREDITS ACTION ──
+    if (creditAction === 'remove') {
+      try {
+        const { data: profile, error: pErr } = await supabase
+          .from('profiles')
+          .select('id, credits_remaining, credits_used')
+          .ilike('email', targetEmail)
+          .single();
+
+        if (pErr || !profile) {
+          setAddCreditsMsg({ type: 'error', text: `User not found with email: ${targetEmail}` });
+          return;
+        }
+
+        const currentRemaining = profile.credits_remaining || 0;
+        const newRemaining = Math.max(0, currentRemaining - amount);
+        const actualDeducted = currentRemaining - newRemaining;
+
+        // Update profile balance
+        const { error: upErr } = await supabase
+          .from('profiles')
+          .update({
+            credits_remaining: newRemaining,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', profile.id);
+
+        if (upErr) throw upErr;
+
+        // Log transaction history
+        await supabase.from('credit_transactions').insert({
+          user_id: profile.id,
+          type: 'admin_deduct',
+          amount: -actualDeducted,
+          balance_after: newRemaining,
+          description: `Admin manual deduction (-${actualDeducted} credits)`
+        });
+
+        setAddCreditsMsg({
+          type: 'success',
+          text: `🗑️ Successfully deducted ${actualDeducted} credits from ${targetEmail}! (New Balance: ${newRemaining})`
+        });
+        setAddCreditsEmail('');
+        setAddCreditsAmount('');
+        await fetchAll();
+        await fetchUsers();
+        return;
+      } catch (dbErr) {
+        console.error('Database credit deduct error:', dbErr);
+        setAddCreditsMsg({ type: 'error', text: dbErr.message || 'Failed to deduct credits' });
+        return;
+      }
+    }
+
+    // ── ADD CREDITS ACTION ──
     // Step 1: Try backend first
     try {
       const res = await fetch(`${BACKEND_URL}/admin/add-credits`, {
@@ -362,7 +418,7 @@ export default function AdminDashboard() {
     { id: 'renewals', label: '⏰ Renewals' },
     { id: 'credits', label: '⚡ Credits' },
     { id: 'activity', label: '📋 Activity' },
-    { id: 'add-credits', label: '➕ Add Credits' },
+    { id: 'add-credits', label: '⚡ Manage Credits' },
   ];
 
   return (
@@ -1083,12 +1139,44 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ═══════════════════════ ADD CREDITS TAB ═══════════════════════ */}
+        {/* ═══════════════════════ MANAGE CREDITS TAB (ADD & REMOVE) ═══════════════════════ */}
         {activeTab === 'add-credits' && (
           <div className="max-w-lg">
             <div className="bg-[#13111c] border border-white/5 rounded-2xl p-8">
-              <h2 className="text-xl font-bold text-white mb-2">➕ Manually Add Credits</h2>
-              <p className="text-gray-400 text-sm mb-6">Add credits to any user's account after verifying their UPI payment in your bank app.</p>
+              {/* Add vs Remove Action Selector Tabs */}
+              <div className="flex bg-[#0a0a0f] p-1.5 rounded-xl mb-6 border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => { setCreditAction('add'); setAddCreditsMsg(null); }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 ${
+                    creditAction === 'add'
+                      ? 'bg-[#7c3aed] text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span>➕</span> Add Credits
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCreditAction('remove'); setAddCreditsMsg(null); }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 ${
+                    creditAction === 'remove'
+                      ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.4)]'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span>➖</span> Remove Credits
+                </button>
+              </div>
+
+              <h2 className="text-xl font-bold text-white mb-2">
+                {creditAction === 'add' ? '➕ Manually Add Credits' : '➖ Deduct / Remove Credits'}
+              </h2>
+              <p className="text-gray-400 text-sm mb-6">
+                {creditAction === 'add'
+                  ? "Add credits to any user's account after verifying their UPI payment in your bank app."
+                  : "Deduct credits from any user's account (e.g. refund, trial adjustment, or account correction)."}
+              </p>
 
               <form onSubmit={handleAddCredits} className="space-y-5">
                 <div>
@@ -1104,10 +1192,12 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">Credits to Add *</label>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                    {creditAction === 'add' ? 'Credits to Add *' : 'Credits to Deduct *'}
+                  </label>
                   <input
                     type="number"
-                    placeholder="e.g. 500, 1000, 2000"
+                    placeholder={creditAction === 'add' ? 'e.g. 500, 1000, 2000' : 'e.g. 50, 100, 500'}
                     value={addCreditsAmount}
                     onChange={(e) => setAddCreditsAmount(e.target.value)}
                     className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-[#7c3aed] outline-none transition"
@@ -1115,28 +1205,39 @@ export default function AdminDashboard() {
                     min="1"
                   />
                   <div className="flex gap-2 mt-2">
-                    {[500, 1000, 2000].map(n => (
-                      <button type="button" key={n} onClick={() => setAddCreditsAmount(String(n))}
-                        className="text-xs bg-[#0a0a0f] border border-white/10 text-gray-400 hover:text-white hover:border-[#7c3aed] px-3 py-1.5 rounded-lg transition">
-                        +{n}
-                      </button>
-                    ))}
+                    {creditAction === 'add' ? (
+                      [100, 500, 1000, 2000].map(n => (
+                        <button type="button" key={n} onClick={() => setAddCreditsAmount(String(n))}
+                          className="text-xs bg-[#0a0a0f] border border-white/10 text-gray-400 hover:text-white hover:border-[#7c3aed] px-3 py-1.5 rounded-lg transition">
+                          +{n}
+                        </button>
+                      ))
+                    ) : (
+                      [15, 50, 100, 500].map(n => (
+                        <button type="button" key={n} onClick={() => setAddCreditsAmount(String(n))}
+                          className="text-xs bg-[#0a0a0f] border border-white/10 text-red-400 hover:text-white hover:border-red-500 px-3 py-1.5 rounded-lg transition">
+                          -{n}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">Plan</label>
-                  <select
-                    value={addCreditsPlan}
-                    onChange={(e) => setAddCreditsPlan(e.target.value)}
-                    className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-[#7c3aed] outline-none transition"
-                  >
-                    <option value="manual">Manual (Admin)</option>
-                    <option value="basic">Basic (₹2,499)</option>
-                    <option value="pro">Pro (₹4,999)</option>
-                    <option value="ultimate">Ultimate (₹7,999)</option>
-                  </select>
-                </div>
+                {creditAction === 'add' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1.5">Plan</label>
+                    <select
+                      value={addCreditsPlan}
+                      onChange={(e) => setAddCreditsPlan(e.target.value)}
+                      className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-[#7c3aed] outline-none transition"
+                    >
+                      <option value="manual">Manual (Admin)</option>
+                      <option value="basic">Basic (₹2,499)</option>
+                      <option value="pro">Pro (₹4,999)</option>
+                      <option value="ultimate">Ultimate (₹7,999)</option>
+                    </select>
+                  </div>
+                )}
 
                 {addCreditsMsg && (
                   <div className={`rounded-xl p-3 text-sm font-semibold ${
@@ -1150,9 +1251,13 @@ export default function AdminDashboard() {
 
                 <button
                   type="submit"
-                  className="w-full bg-[#7c3aed] hover:bg-purple-600 text-white font-bold py-3.5 rounded-xl transition shadow-[0_0_15px_rgba(124,58,237,0.3)]"
+                  className={`w-full font-bold py-3.5 rounded-xl transition ${
+                    creditAction === 'add'
+                      ? 'bg-[#7c3aed] hover:bg-purple-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)]'
+                      : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]'
+                  }`}
                 >
-                  ⚡ Add Credits
+                  {creditAction === 'add' ? '⚡ Add Credits' : '🗑️ Deduct Credits'}
                 </button>
               </form>
             </div>
