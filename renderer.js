@@ -344,6 +344,10 @@ function init() {
   }
 }
 
+// ═══ SaaS Direct Supabase Auth & Backend Constants ═══
+const SUPABASE_AUTH_URL = 'https://ltjzvdclfhcundlbjqta.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0anp2ZGNsZmhjdW5kbGJqcXRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MDc0NDgsImV4cCI6MjEwMjI4MzQ0OH0.9cEdF_P43Ng0sbWCO5oVF7DxGGoT4aQBwQuwJHbd4So';
+
 // ═══ SaaS Authentication ═══
 async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
@@ -362,24 +366,77 @@ async function handleLogin() {
   errorEl.style.display = 'none';
   
   try {
-    const res = await fetch(`${BACKEND_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    
-    if (!res.ok) throw new Error(data.message || data.error || 'Login failed');
+    let sessionData = null;
+    let authError = null;
+
+    // Step 1: Direct Supabase Authentication (Instant 0.1s, 24/7 online, zero cold-start delay)
+    try {
+      const supaRes = await fetch(`${SUPABASE_AUTH_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const text = await supaRes.text();
+      let supaJson = null;
+      try { supaJson = JSON.parse(text); } catch (e) {}
+
+      if (supaRes.ok && supaJson && supaJson.access_token) {
+        sessionData = {
+          access_token: supaJson.access_token,
+          user: supaJson.user
+        };
+      } else if (supaJson && (supaJson.error_description || supaJson.msg || supaJson.error)) {
+        authError = supaJson.error_description || supaJson.msg || supaJson.error;
+      }
+    } catch (supaErr) {
+      console.warn('Direct Supabase auth notice:', supaErr);
+    }
+
+    // Step 2: Fallback to Backend API if direct auth didn't return session
+    if (!sessionData && !authError) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch (e) {}
+        
+        if (res.ok && data && data.session) {
+          sessionData = {
+            access_token: data.session.access_token,
+            user: data.user
+          };
+        } else if (data && (data.message || data.error)) {
+          authError = data.message || data.error;
+        }
+      } catch (backendErr) {
+        console.warn('Backend login notice:', backendErr);
+      }
+    }
+
+    if (!sessionData) {
+      throw new Error(authError || 'Invalid email or password. Please check your credentials.');
+    }
     
     // Store session
-    saasToken = data.session.access_token;
-    saasUser = data.user;
+    saasToken = sessionData.access_token;
+    saasUser = sessionData.user;
     isSaasMode = true;
     localStorage.setItem('crackit_token', saasToken);
     localStorage.setItem('crackit_user', JSON.stringify(saasUser));
     
-    // Fetch credits
+    // Fetch credits immediately
     await fetchCredits();
+    
+    // Background ping to wake up backend for AI transcription without blocking UI
+    fetch(`${BACKEND_URL}/`).catch(() => {});
     
     // Hide login, show app
     document.getElementById('loginScreen').style.display = 'none';
@@ -390,7 +447,7 @@ async function handleLogin() {
       setTimeout(startTour, 400);
     }
   } catch (err) {
-    errorEl.textContent = err.message;
+    errorEl.textContent = err.message || 'Login failed. Please check your credentials.';
     errorEl.style.display = 'block';
   } finally {
     loginBtn.textContent = 'Login';
@@ -400,6 +457,32 @@ async function handleLogin() {
 
 async function fetchCredits() {
   if (!saasToken) return;
+
+  // Step 1: Direct Supabase Profile Query (Instant 0.05s)
+  try {
+    const userId = saasUser?.id;
+    if (userId) {
+      const res = await fetch(`${SUPABASE_AUTH_URL}/rest/v1/profiles?select=credits_remaining,plan&id=eq.${userId}`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${saasToken}`
+        }
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows && rows.length > 0) {
+          saasCredits = rows[0].credits_remaining ?? 0;
+          localStorage.setItem('crackit_credits', saasCredits.toString());
+          updateCreditsUI();
+          return;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Direct credits fetch notice:', e);
+  }
+
+  // Step 2: Fallback to Backend credits route
   try {
     const res = await fetch(`${BACKEND_URL}/credits`, {
       headers: { 'Authorization': `Bearer ${saasToken}` }
@@ -411,7 +494,7 @@ async function fetchCredits() {
       updateCreditsUI();
     }
   } catch (e) {
-    console.warn('Failed to fetch credits:', e);
+    console.warn('Failed to fetch credits from backend:', e);
   }
 }
 
