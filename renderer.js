@@ -347,7 +347,18 @@ function init() {
 // ═══ SaaS Direct Supabase Auth & Backend Constants ═══
 const SUPABASE_AUTH_URL = 'https://ltjzvdclfhcundlbjqta.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0anp2ZGNsZmhjdW5kbGJqcXRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MDc0NDgsImV4cCI6MjEwMjI4MzQ0OH0.9cEdF_P43Ng0sbWCO5oVF7DxGGoT4aQBwQuwJHbd4So';
-const DEFAULT_WHISPER_KEY = atob('Z3NrX1NObGxzaTQ3Z0FQZm43ZlF1M0UyV0dkeWJyb0ZZdUl5c25uUjczNWlMSks3UnFWanA2VXQ=');
+const DEFAULT_WHISPER_KEY = atob('Z3NrX1NObGxzaTQ3Z0FQZm43ZlF1M0UyV0dkeWJyM0ZZdUl5c25uUjczNWlMSks3UnFWanA2VXQ=');
+
+// ═══ Safe JSON Parser — prevents crash when server returns HTML/502 ═══
+async function safeJsonParse(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.warn('safeJsonParse: Non-JSON response:', text.slice(0, 200));
+    throw new Error('Server returned invalid response (possibly offline)');
+  }
+}
 
 // ═══ SaaS Authentication ═══
 async function handleLogin() {
@@ -470,7 +481,7 @@ async function fetchCredits() {
         }
       });
       if (res.ok) {
-        const rows = await res.json();
+        const rows = await safeJsonParse(res);
         if (rows && rows.length > 0) {
           saasCredits = rows[0].credits_remaining ?? 0;
           localStorage.setItem('crackit_credits', saasCredits.toString());
@@ -489,7 +500,7 @@ async function fetchCredits() {
       headers: { 'Authorization': `Bearer ${saasToken}` }
     });
     if (res.ok) {
-      const data = await res.json();
+      const data = await safeJsonParse(res);
       saasCredits = data.credits_remaining || 0;
       localStorage.setItem('crackit_credits', saasCredits.toString());
       updateCreditsUI();
@@ -549,21 +560,35 @@ async function callSaasBackend(thinkingEl, type = 'text') {
   const card = addAnswerCard(thinkingEl);
   let full = '';
   
-  const res = await fetch(`${BACKEND_URL}/ask`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${saasToken}`
-    },
-    body: JSON.stringify({
-      question: conversationHistory[conversationHistory.length - 1].content,
-      type: type,
-      systemPrompt: buildMessages()[0].content
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  
+  let res;
+  try {
+    res = await fetch(`${BACKEND_URL}/ask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${saasToken}`
+      },
+      body: JSON.stringify({
+        question: conversationHistory[conversationHistory.length - 1].content,
+        type: type,
+        systemPrompt: buildMessages()[0].content
+      }),
+      signal: controller.signal
+    });
+  } catch (fetchErr) {
+    clearTimeout(timeoutId);
+    if (fetchErr.name === 'AbortError') {
+      throw new Error('Server is waking up — please try again in 10 seconds');
+    }
+    throw fetchErr;
+  }
+  clearTimeout(timeoutId);
   
   if (res.status === 402) {
-    const err = await res.json();
+    const err = await safeJsonParse(res);
     updateCard(card, `⚠️ **Insufficient Credits!**\n\nYou have ${err.credits_remaining} credits remaining.\nThis query needs ${err.credits_needed} credits.\n\n[🚀 Upgrade Plan at crackit-ai.vercel.app/pricing](https://crackit-ai.vercel.app/pricing)`);
     return full;
   }
@@ -576,8 +601,8 @@ async function callSaasBackend(thinkingEl, type = 'text') {
   }
   
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || err.message || 'Backend error');
+    const err = await safeJsonParse(res).catch(() => ({}));
+    throw new Error(err.error || err.message || 'Backend error — server may be starting up, try again');
   }
   
   const reader = res.body.getReader();
@@ -987,13 +1012,17 @@ Generate ONLY the prompt text. No explanations.`;
     try {
       const headers = { 'Content-Type': 'application/json' };
       if (saasToken) headers['Authorization'] = `Bearer ${saasToken}`;
+      const resumeController = new AbortController();
+      const resumeTimeout = setTimeout(() => resumeController.abort(), 8000);
       const res = await fetch(`${BACKEND_URL}/ask/generate-resume-prompt`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ resumeText: resumeContent })
+        body: JSON.stringify({ resumeText: resumeContent }),
+        signal: resumeController.signal
       });
+      clearTimeout(resumeTimeout);
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJsonParse(res);
         generatedPrompt = data.prompt || '';
       }
     } catch (e) {
@@ -1003,13 +1032,17 @@ Generate ONLY the prompt text. No explanations.`;
     // 2. Try Prod Backend fallback
     if (!generatedPrompt && saasToken) {
       try {
+        const prodController = new AbortController();
+        const prodTimeout = setTimeout(() => prodController.abort(), 8000);
         const res = await fetch(`${PROD_BACKEND_URL}/ask/generate-resume-prompt`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${saasToken}` },
-          body: JSON.stringify({ resumeText: resumeContent })
+          body: JSON.stringify({ resumeText: resumeContent }),
+          signal: prodController.signal
         });
+        clearTimeout(prodTimeout);
         if (res.ok) {
-          const data = await res.json();
+          const data = await safeJsonParse(res);
           generatedPrompt = data.prompt || '';
         }
       } catch (e) {
@@ -1031,7 +1064,7 @@ Generate ONLY the prompt text. No explanations.`;
           })
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await safeJsonParse(res);
           generatedPrompt = data.choices?.[0]?.message?.content || '';
         }
       } catch (e) { /* ignore */ }
@@ -1049,7 +1082,7 @@ Generate ONLY the prompt text. No explanations.`;
           }
         );
         if (res.ok) {
-          const data = await res.json();
+          const data = await safeJsonParse(res);
           generatedPrompt = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         }
       } catch (e) { /* ignore */ }
@@ -1689,7 +1722,7 @@ async function transcribeAudio() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await safeJsonParse(response);
         transcript = data.text?.trim() || '';
       } else {
         // Try turbo model fallback
@@ -1705,7 +1738,7 @@ async function transcribeAudio() {
           body: turboFormData
         });
         if (turboRes.ok) {
-          const data = await turboRes.json();
+          const data = await safeJsonParse(turboRes);
           transcript = data.text?.trim() || '';
         }
       }
@@ -1730,7 +1763,7 @@ async function transcribeAudio() {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await safeJsonParse(response);
         transcript = data.text?.trim() || '';
       }
     } catch (cloudErr) {
@@ -1833,16 +1866,20 @@ async function analyzeScreenshot(imageDataUrl) {
     let extracted = '';
     if (isSaasMode) {
       try {
+        const ocrController = new AbortController();
+        const ocrTimeout = setTimeout(() => ocrController.abort(), 10000);
         const res = await fetch(`${BACKEND_URL}/ask/extract-ocr`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${saasToken}`
           },
-          body: JSON.stringify({ rawText: rawText.slice(0, 4000) })
+          body: JSON.stringify({ rawText: rawText.slice(0, 4000) }),
+          signal: ocrController.signal
         });
+        clearTimeout(ocrTimeout);
         if (res.ok) {
-          const data = await res.json();
+          const data = await safeJsonParse(res);
           extracted = data.question;
         }
       } catch (err) {
@@ -1880,7 +1917,7 @@ async function analyzeScreenshot(imageDataUrl) {
               temperature: 0
             })
           });
-          const data = await res.json();
+          const data = await safeJsonParse(res);
           extracted = data.choices?.[0]?.message?.content?.trim() || '';
         } catch (e) {
           console.warn('BYOK extraction failed:', e);
@@ -2256,7 +2293,7 @@ async function callGroq(thinkingEl) {
     })
   });
 
-  if (!response.ok) { const e = await response.json(); throw new Error(e.error?.message || 'Groq error ' + response.status); }
+  if (!response.ok) { const e = await safeJsonParse(response).catch(() => ({})); throw new Error(e.error?.message || 'Groq error ' + response.status); }
   return streamOpenAIFormat(response, thinkingEl, 'Groq ⚡');
 }
 
@@ -2301,7 +2338,7 @@ async function callGemini(thinkingEl) {
     }
   );
 
-  if (!response.ok) { const e = await response.json(); throw new Error(e.error?.message || 'Gemini error ' + response.status); }
+  if (!response.ok) { const e = await safeJsonParse(response).catch(() => ({})); throw new Error(e.error?.message || 'Gemini error ' + response.status); }
 
   const row = addAnswerCard(thinkingEl);
   const card = row.querySelector('.answer-card');
@@ -2339,7 +2376,7 @@ async function callOpenAI(thinkingEl) {
     })
   });
 
-  if (!response.ok) { const e = await response.json(); throw new Error(e.error?.message || 'OpenAI error ' + response.status); }
+  if (!response.ok) { const e = await safeJsonParse(response).catch(() => ({})); throw new Error(e.error?.message || 'OpenAI error ' + response.status); }
   return streamOpenAIFormat(response, thinkingEl, 'GPT');
 }
 
@@ -2864,7 +2901,7 @@ async function processSystemAudio() {
       body: formData
     });
 
-    const data = await response.json();
+    const data = await safeJsonParse(response);
     if (!response.ok) throw new Error(data.error?.message || 'Transcription failed');
 
     const transcript = data.text?.trim();
@@ -2938,7 +2975,7 @@ Reply ONLY with "YES" or "NO".
       })
     });
 
-    const data = await res.json();
+    const data = await safeJsonParse(res);
     const answer = data.choices?.[0]?.message?.content?.trim()?.toUpperCase() || '';
     return answer.includes('YES');
   } catch {
