@@ -2058,13 +2058,14 @@ async function askCrackit(question, { fromSpeech = false, _isRetry = false } = {
 // ─── User Question Bubble ───
 function addUserBubble(question) {
   const row = document.createElement('div');
-  row.className = 'message-row';
+  row.className = 'message-row user-message-row';
   row.innerHTML = `
     <div class="user-bubble-wrap">
       <div class="user-bubble">${escapeHtml(question)}</div>
     </div>`;
   chatArea.appendChild(row);
-  scrollBottom();
+  // Auto-scroll new question to the top so user starts reading from the top!
+  row.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ─── Thinking Bubble ───
@@ -2081,13 +2082,13 @@ function addThinkingBubble() {
       <div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>`;
   chatArea.appendChild(row);
-  scrollBottom();
+  row.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return row;
 }
 
 // ─── Answer Card ───
 function addAnswerCard(thinkingEl) {
-  thinkingEl.remove();
+  thinkingEl?.remove();
   const row = document.createElement('div');
   row.className = 'message-row';
   row.innerHTML = `
@@ -2106,6 +2107,7 @@ function addAnswerCard(thinkingEl) {
   }
 
   chatArea.appendChild(row);
+  // Pin this answer card right at the top of the viewport
   row.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return row;
 }
@@ -2437,11 +2439,14 @@ function updateCard(card, text) {
 
   const html = renderMarkdown(displayText);
   card.innerHTML = html;
-  // Bug #1 Fix: throttle scrollIntoView with RAF to prevent streaming jitter
-  if (isTeleprompterMode && !card._scrollPending) {
+  // Keep the active answer pinned to the top of the screen while streaming
+  if (!card._scrollPending) {
     card._scrollPending = true;
     requestAnimationFrame(() => {
-      card.parentElement?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      const messageRow = card.closest('.message-row');
+      if (messageRow && messageRow.offsetTop > chatArea.scrollTop) {
+        messageRow.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }
       card._scrollPending = false;
     });
   }
