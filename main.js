@@ -91,7 +91,12 @@ function loadWindowBounds() {
     const boundsPath = path.join(app.getPath('userData'), 'window-bounds.json');
     if (fs.existsSync(boundsPath)) {
       const data = fs.readFileSync(boundsPath, 'utf8');
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      // Migrate old vertical layout (width <= 650 && height >= 550) to new top-center floating card
+      if (parsed && (parsed.width <= 650 && parsed.height >= 550)) {
+        return null;
+      }
+      return parsed;
     }
   } catch (e) {
     console.error('Failed to load window bounds:', e);
@@ -110,19 +115,21 @@ function saveWindowBounds(bounds) {
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const savedBounds = loadWindowBounds();
+  const targetWidth = Math.min(950, width - 40);
+  const targetHeight = 320;
 
   const defaultBounds = {
-    width: 500,
-    height: 750,
-    x: width - 520,
-    y: 40
+    width: targetWidth,
+    height: targetHeight,
+    x: Math.max(0, Math.round((width - targetWidth) / 2)),
+    y: 20
   };
 
+  const savedBounds = loadWindowBounds();
   const bounds = savedBounds || defaultBounds;
   const windowBounds = {
-    width: Math.min(Math.max(bounds.width || 500, 420), 600),
-    height: Math.min(Math.max(bounds.height || 750, 600), 900),
+    width: Math.min(Math.max(bounds.width || targetWidth, 480), width),
+    height: Math.min(Math.max(bounds.height || targetHeight, 180), height - 40),
     x: bounds.x != null ? bounds.x : defaultBounds.x,
     y: bounds.y != null ? bounds.y : defaultBounds.y
   };
@@ -137,9 +144,9 @@ function createWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: true,
-    minWidth: 420,
-    minHeight: 600,
-    maxWidth: 600,
+    minWidth: 480,
+    minHeight: 180,
+    maxWidth: 1600,
     maxHeight: 900,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -377,10 +384,11 @@ ipcMain.handle('toggle-teleprompter', (_, enable) => {
     mainWindow.setResizable(true);
     mainWindow.setBounds({ x: 0, y: 0, width: width, height: 100 });
   } else {
-    mainWindow.setMinimumSize(420, 600);
-    mainWindow.setMaximumSize(600, 900);
+    mainWindow.setMinimumSize(480, 180);
+    mainWindow.setMaximumSize(1600, 900);
     mainWindow.setResizable(true);
-    const b = savedNormalBounds || { x: width - 520, y: 40, width: 500, height: 750 };
+    const targetWidth = Math.min(950, width - 40);
+    const b = savedNormalBounds || { x: Math.max(0, Math.round((width - targetWidth) / 2)), y: 20, width: targetWidth, height: 320 };
     mainWindow.setBounds(b);
     savedNormalBounds = null;
   }
