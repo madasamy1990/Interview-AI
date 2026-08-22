@@ -92,8 +92,8 @@ function loadWindowBounds() {
     if (fs.existsSync(boundsPath)) {
       const data = fs.readFileSync(boundsPath, 'utf8');
       const parsed = JSON.parse(data);
-      // Migrate old vertical layout (width <= 650 && height >= 550) to new top-center floating card
-      if (parsed && (parsed.width <= 650 && parsed.height >= 550)) {
+      // Migrate old small/vertical layout to match the exact photo layout
+      if (parsed && (parsed.width < 750 || parsed.height < 400)) {
         return null;
       }
       return parsed;
@@ -115,23 +115,28 @@ function saveWindowBounds(bounds) {
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const targetWidth = Math.min(950, width - 40);
-  const targetHeight = 320;
+  
+  // Exact size & position as shown in photo:
+  // 78% screen width (centered) and 75% work area height (below webcam down to taskbar)
+  const targetWidth = Math.min(1080, Math.round(width * 0.78));
+  const targetHeight = Math.min(640, Math.round(height * 0.75));
+  const targetX = Math.max(0, Math.round((width - targetWidth) / 2));
+  const targetY = 20;
 
   const defaultBounds = {
     width: targetWidth,
     height: targetHeight,
-    x: Math.max(0, Math.round((width - targetWidth) / 2)),
-    y: 20
+    x: targetX,
+    y: targetY
   };
 
   const savedBounds = loadWindowBounds();
   const bounds = savedBounds || defaultBounds;
   const windowBounds = {
-    width: Math.min(Math.max(bounds.width || targetWidth, 480), width),
-    height: Math.min(Math.max(bounds.height || targetHeight, 180), height - 40),
-    x: bounds.x != null ? bounds.x : defaultBounds.x,
-    y: bounds.y != null ? bounds.y : defaultBounds.y
+    width: bounds.width ? Math.min(Math.max(bounds.width, 500), width) : targetWidth,
+    height: bounds.height ? Math.min(Math.max(bounds.height, 200), height - 20) : targetHeight,
+    x: bounds.x != null ? bounds.x : targetX,
+    y: bounds.y != null ? bounds.y : targetY
   };
 
   mainWindow = new BrowserWindow({
@@ -145,9 +150,9 @@ function createWindow() {
     skipTaskbar: true,
     resizable: true,
     minWidth: 480,
-    minHeight: 180,
+    minHeight: 200,
     maxWidth: 1600,
-    maxHeight: 900,
+    maxHeight: 1000,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -384,11 +389,13 @@ ipcMain.handle('toggle-teleprompter', (_, enable) => {
     mainWindow.setResizable(true);
     mainWindow.setBounds({ x: 0, y: 0, width: width, height: 100 });
   } else {
-    mainWindow.setMinimumSize(480, 180);
-    mainWindow.setMaximumSize(1600, 900);
+    mainWindow.setMinimumSize(480, 200);
+    mainWindow.setMaximumSize(1600, 1000);
     mainWindow.setResizable(true);
-    const targetWidth = Math.min(950, width - 40);
-    const b = savedNormalBounds || { x: Math.max(0, Math.round((width - targetWidth) / 2)), y: 20, width: targetWidth, height: 320 };
+    const { height: h } = screen.getPrimaryDisplay().workAreaSize;
+    const targetWidth = Math.min(1080, Math.round(width * 0.78));
+    const targetHeight = Math.min(640, Math.round(h * 0.75));
+    const b = savedNormalBounds || { x: Math.max(0, Math.round((width - targetWidth) / 2)), y: 20, width: targetWidth, height: targetHeight };
     mainWindow.setBounds(b);
     savedNormalBounds = null;
   }
